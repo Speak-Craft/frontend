@@ -1,9 +1,14 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { FaCamera, FaClock, FaMicrophone, FaChartLine, FaFileAlt  } from "react-icons/fa";
 import { BiSolidVideoRecording } from "react-icons/bi";
-import { MdDashboardCustomize } from "react-icons/md";
+import { MdDashboardCustomize, MdCoPresent } from "react-icons/md";
+
 
 const Sidebar = () => {
+
+  const navigate = useNavigate();
+
   return (
     <aside className="h-screen w-64 bg-purple-950 text-white shadow-lg">
       <div className="p-6 text-center text-2xl font-bold border-b border-gray-700">
@@ -13,6 +18,10 @@ const Sidebar = () => {
       <li className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-700">
           <MdDashboardCustomize className="text-xl" />
           <span>Dashboard</span>
+        </li>
+        <li className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-700 mt-4" onClick={() => navigate("/present")}>
+          <MdCoPresent className="text-xl" />
+          <span>Present</span>
         </li>
         <li className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-700 mt-4">
           <FaCamera className="text-xl" />

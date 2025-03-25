@@ -1,17 +1,21 @@
+import React from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+import Present from "./components/Present";
 
 const App = () => {
   return (
-    <div className="overflwo-x-hidden text-neutral-300 antialiased selection: bg:cyan-300 selection:text-cyan-900">
-
-
-
-      <div className="container mx-auto">
-
+    <Router>
+      <div className="flex">
         <Sidebar />
+        <div className="flex-1">
+          <Routes>
+            <Route path="/present" element={<Present />} />
+          </Routes>
+        </div>
       </div>
-    </div>
-  )
-}
+    </Router>
+  );
+};
 
 export default App;
