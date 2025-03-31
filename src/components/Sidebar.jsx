@@ -1,5 +1,5 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FaCamera, FaClock, FaMicrophone, FaChartLine, FaFileAlt, FaPause } from "react-icons/fa";
 import { BiSolidVideoRecording } from "react-icons/bi";
 import { MdDashboardCustomize, MdCoPresent } from "react-icons/md";
@@ -8,6 +8,24 @@ import MenuHeader from "./MenuHeader";
 
 const Sidebar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [activeItem, setActiveItem] = useState(location.pathname);
+
+  const menuItems = [
+    { name: "Dashboard", icon: <MdDashboardCustomize className="text-xl" />, path: "/" },
+    { name: "Present", icon: <MdCoPresent className="text-xl" />, path: "/present" },
+    { name: "Face Detection", icon: <FaCamera className="text-xl" />, path: "/face-detection" },
+    { name: "Pace Management", icon: <FaPause className="text-xl" />, path: "/pace-management" },
+    { name: "Filler Words", icon: <FaMicrophone className="text-xl" />, path: "/filler-words" },
+    { name: "Pitch and Tone", icon: <FaChartLine className="text-xl" />, path: "/pitch-tone" },
+    { name: "Recordings", icon: <BiSolidVideoRecording className="text-xl" />, path: "/recordings" },
+    { name: "Report", icon: <FaFileAlt className="text-xl" />, path: "/report" },
+  ];
+
+  const handleNavigation = (path) => {
+    setActiveItem(path);
+    navigate(path);
+  };
 
   return (
     <div className="flex">
@@ -17,44 +35,20 @@ const Sidebar = () => {
           <img src={logo} alt="SpeaKraft Logo" className="w-full object-contain" />
         </div>
         <ul className="flex flex-col gap-3 w-full">
-          <li
-            className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-[#00a8cc] hover:text-white transition dark:hover:bg-[#005f6b] dark:hover:text-[#00a8cc]"
-            onClick={() => navigate("/")}
-          >
-            <MdDashboardCustomize className="text-xl" />
-            <span>Dashboard</span>
-          </li>
-          <li
-            className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-[#00a8cc] hover:text-white transition dark:hover:bg-[#005f6b] dark:hover:text-[#00a8cc]"
-            onClick={() => navigate("/present")}
-          >
-            <MdCoPresent className="text-xl" />
-            <span>Present</span>
-          </li>
-          <li className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-[#00a8cc] hover:text-white transition dark:hover:bg-[#005f6b] dark:hover:text-[#00a8cc]">
-            <FaCamera className="text-xl" />
-            <span>Face Detection</span>
-          </li>
-          <li className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-[#00a8cc] hover:text-white transition dark:hover:bg-[#005f6b] dark:hover:text-[#00a8cc]">
-            <FaPause className="text-xl" />
-            <span>Pace Management</span>
-          </li>
-          <li className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-[#00a8cc] hover:text-white transition dark:hover:bg-[#005f6b] dark:hover:text-[#00a8cc]">
-            <FaMicrophone className="text-xl" />
-            <span>Filler Words</span>
-          </li>
-          <li className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-[#00a8cc] hover:text-white transition dark:hover:bg-[#005f6b] dark:hover:text-[#00a8cc]">
-            <FaChartLine className="text-xl" />
-            <span>Pitch and Tone</span>
-          </li>
-          <li className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-[#00a8cc] hover:text-white transition dark:hover:bg-[#005f6b] dark:hover:text-[#00a8cc]">
-            <BiSolidVideoRecording className="text-xl" />
-            <span>Recordings</span>
-          </li>
-          <li className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-[#00a8cc] hover:text-white transition dark:hover:bg-[#005f6b] dark:hover:text-[#00a8cc]">
-            <FaFileAlt className="text-xl" />
-            <span>Report</span>
-          </li>
+          {menuItems.map((item) => (
+            <li
+              key={item.path}
+              className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg transition ${
+                activeItem === item.path
+                  ? "bg-[#0084a6] text-white" // Active state
+                  : "hover:bg-[#00a8cc] dark:hover:bg-[#005f6b] dark:hover:text-[#00a8cc]"
+              }`}
+              onClick={() => handleNavigation(item.path)}
+            >
+              {item.icon}
+              <span>{item.name}</span>
+            </li>
+          ))}
         </ul>
       </aside>
 
