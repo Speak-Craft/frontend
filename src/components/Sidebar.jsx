@@ -30,7 +30,7 @@ const Sidebar = () => {
   return (
     <div className="flex">
       {/* Sidebar */}
-      <aside className="fixed top-5 left-5 h-[90vh] w-64 bg-gradient-to-b from-[#003b46] to-[#07575b] text-white shadow-xl rounded-2xl p-4 flex flex-col items-center transition-all duration-300 dark:bg-[#00171f] dark:text-gray-300 z-50">
+      <aside className="fixed top-5 left-5 h-[96vh] w-64 bg-gradient-to-b from-[#003b46] to-[#07575b] text-white shadow-xl rounded-2xl p-4 flex flex-col items-center transition-all duration-300 dark:bg-[#00171f] dark:text-gray-300 z-50">
         <div className="w-60 h-20">
           <img src={logo} alt="SpeaKraft Logo" className="w-full object-contain" />
         </div>
