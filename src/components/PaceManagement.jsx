@@ -168,7 +168,7 @@ const PaceManagement = () => {
     <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] h-[calc(100vh-3rem)] p-8 flex justify-center items-center">
       <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-6 flex flex-col justify-center items-center">
         <div className="flex w-full h-full gap-8">
-          <div className="flex flex-col items-center w-full sm:w-1/2 bg-[#002b36] p-4 rounded-lg shadow-lg">
+          <div className="flex flex-col items-center w-full sm:w-1/2 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] p-4 rounded-lg shadow-lg">
             <h2 className="text-xl font-semibold mb-15">Voice Recorder</h2>
 
             <div className="relative flex items-center justify-center">
@@ -276,7 +276,7 @@ const PaceManagement = () => {
           {/* Right side */}
           <div className="w-full flex flex-col sm:flex-row justify-start items-start gap-6">
             {/* Word Count Section */}
-            <div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#07575b]">
+            <div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
               <h3 className="text-white text-lg font-semibold mb-2">
                 Word Count
               </h3>
@@ -285,17 +285,17 @@ const PaceManagement = () => {
               </div>
             </div>
 
-            <div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#07575b]">
+            <div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
               <h3 className="text-white text-lg font-semibold mb-2">
                 Duration
               </h3>
-              <div className="flex justify-center items-center rounded-full w-32 h-32 bg-white/10 text-white text-xl font-semibold">
+              <div className="flex justify-center items-center rounded-full w-24 h-24 sm:w-32 sm:h-32 bg-white/10 text-white text-xl font-semibold">
                 {results.duration.toFixed(2)}s
               </div>
             </div>
 
             {/* WPM Gauge */}
-            <div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#07575b]">
+            <div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
               <h3 className="text-white text-lg font-semibold mb-2">
                 Speech Rate
               </h3>
@@ -314,16 +314,42 @@ const PaceManagement = () => {
             </div>
 
             {/* Confidence & Feedback */}
-            <div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#07575b]">
+            <div className="flex flex-col items-center w-full sm:w-72 rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
               <h3 className="text-white text-lg font-semibold mb-2">
                 Confidence
               </h3>
-              <div className="flex justify-center items-center rounded-full w-24 h-24 bg-white/10 text-white text-xl font-semibold">
-                {results.confidence.toFixed(1)}%
+
+              {/* Progress Bar */}
+              <div className="w-full bg-white/20 rounded-full h-4 overflow-hidden mb-2">
+                <div
+                  className={`h-4 rounded-full transition-all duration-500 ${
+                    results.confidence >= 80
+                      ? "bg-green-400"
+                      : results.confidence >= 50
+                      ? "bg-yellow-400"
+                      : "bg-red-400"
+                  }`}
+                  style={{ width: `${results.confidence}%` }}
+                ></div>
               </div>
-              <p className="text-sm text-center mt-2 text-white/80">
-                {results.feedback}
+
+              {/* Percentage Text */}
+              <p className="text-white text-md font-semibold mb-3">
+                {results.confidence.toFixed(1)}%
               </p>
+
+              {/* Feedback Highlighted Box */}
+              <div
+                className={`w-full text-md text-center px-4 py-3 rounded-lg font-medium shadow-md ${
+                  results.prediction === "Fast"
+                    ? "bg-red-600/30 text-red-200 border border-red-500"
+                    : results.prediction === "Slow"
+                    ? "bg-yellow-600/30 text-yellow-100 border border-yellow-400"
+                    : "bg-green-600/30 text-green-100 border border-green-400"
+                }`}
+              >
+                {results.feedback}
+              </div>
             </div>
           </div>
         </div>
