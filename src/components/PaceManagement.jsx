@@ -210,7 +210,7 @@ const PaceManagement = () => {
           </div>
 
           {/* Right side */}
-          <div className="w-full flex flex-col sm:flex-row justify-center items-center gap-6">
+          <div className="w-full flex flex-col sm:flex-row justify-start items-start gap-6">
 
 {/* Word Count Section */}
 <div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#07575b]">
