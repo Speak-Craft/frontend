@@ -210,27 +210,34 @@ const PaceManagement = () => {
           </div>
 
           {/* Right side */}
+          <div className="w-full flex flex-col sm:flex-row justify-center items-center gap-6">
 
-          <div className="w-full bg-[#003b46] p-6 rounded-lg flex flex-col sm:flex-row justify-center items-center gap-4 shadow-lg">
-
-    {/* Circle with Number */}
-    <div className="flex justify-center items-center rounded-full w-24 h-24 sm:w-32 sm:h-32 bg-[#07575b] text-white text-xl font-semibold">
-  100
+{/* Word Count Section */}
+<div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#07575b]">
+  <h3 className="text-white text-lg font-semibold mb-2">Word Count</h3>
+  <div className="flex justify-center items-center rounded-full w-24 h-24 sm:w-32 sm:h-32 bg-white/10 dark:bg-white/20 text-white text-xl font-semibold">
+    100
+  </div>
 </div>
 
-{/* Gauge Chart for WPM */}
-<div className="flex justify-center">
-  <GaugeChart
-    id="wpm-gauge"
-    nrOfLevels={30}
-    colors={["#ff0000", "#ff9900", "#00cc00"]}
-    arcWidth={0.3}
-    percent={120 / 200}
-    textColor="#fff"
-    style={{ width: '16rem', height: '8rem' }}  // Slightly smaller for tighter spacing
-  />
+{/* Speech Rate Section */}
+<div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#07575b]">
+  <h3 className="text-white text-lg font-semibold mb-2">Speech Rate</h3>
+  <div className="flex justify-center">
+    <GaugeChart
+      id="wpm-gauge"
+      nrOfLevels={30}
+      colors={["#ff0000", "#ff9900", "#00cc00"]}
+      arcWidth={0.3}
+      percent={120 / 200}
+      textColor="#fff"
+      style={{ width: '16rem', height: '8rem' }}
+    />
+  </div>
 </div>
+
 </div>
+
 
 
         </div>
