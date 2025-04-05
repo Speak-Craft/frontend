@@ -139,7 +139,7 @@ const PaceManagement = () => {
       <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-6 flex flex-col justify-center items-center">
         
         <div className="flex w-full h-full gap-8">
-        <div className="flex flex-col items-center w-full sm:w-1/2 bg-[#002b36] p-4 rounded-lg shadow-lg">
+        <div className="flex flex-col items-center w-full sm:w-1/2 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] p-4 rounded-lg shadow-lg">
         <h2 className="text-xl font-semibold mb-15">Voice Recorder</h2>
 
             <div className="relative flex items-center justify-center">
@@ -213,7 +213,7 @@ const PaceManagement = () => {
           <div className="w-full flex flex-col sm:flex-row justify-start items-start gap-6">
 
 {/* Word Count Section */}
-<div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#07575b]">
+<div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
   <h3 className="text-white text-lg font-semibold mb-2">Word Count</h3>
   <div className="flex justify-center items-center rounded-full w-24 h-24 sm:w-32 sm:h-32 bg-white/10 dark:bg-white/20 text-white text-xl font-semibold">
     100
@@ -221,7 +221,7 @@ const PaceManagement = () => {
 </div>
 
 {/* Speech Rate Section */}
-<div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#07575b]">
+<div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
   <h3 className="text-white text-lg font-semibold mb-2">Speech Rate</h3>
   <div className="flex justify-center">
     <GaugeChart
