@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+// import { motion } from "framer-motion";
 import { FaMicrophone, FaStop, FaPlay, FaPause, FaClock } from "react-icons/fa";
 import GaugeChart from "react-gauge-chart";
 import {
