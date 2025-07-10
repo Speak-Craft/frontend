@@ -12,7 +12,7 @@ const Sidebar = () => {
   const [activeItem, setActiveItem] = useState(location.pathname);
 
   const menuItems = [
-    { name: "Dashboard", icon: <MdDashboardCustomize className="text-xl" />, path: "/" },
+    { name: "Dashboard", icon: <MdDashboardCustomize className="text-xl" />, path: "/dashboard" },
     { name: "Present", icon: <MdCoPresent className="text-xl" />, path: "/present" },
     { name: "Face Detection", icon: <FaCamera className="text-xl" />, path: "/face-detection" },
     { name: "Pace Management", icon: <FaPause className="text-xl" />, path: "/pace-management" },
