@@ -14,7 +14,7 @@ import {
 import jsPDF from "jspdf";
 import * as htmlToImage from "html-to-image";
 
-import image01 from "/assets/images/image01.png";
+import image01 from "../assets/images/image01.png";
 
 const PaceManagement = () => {
   const [isRecording, setIsRecording] = useState(false);

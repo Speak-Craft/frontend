@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { FaCamera, FaClock, FaMicrophone, FaChartLine, FaFileAlt, FaPause } from "react-icons/fa";
 import { BiSolidVideoRecording } from "react-icons/bi";
 import { MdDashboardCustomize, MdCoPresent } from "react-icons/md";
-import logo from "/assets/images/logo.png"; // Replace with actual path
+import logo from "../assets/images/logo.png"; // Replace with actual path
 import MenuHeader from "./MenuHeader";
 
 const Sidebar = () => {
