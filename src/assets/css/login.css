@@ -1,80 +1,244 @@
-.login-container {
-    display: flex;
-    height: 100vh;
-    width: 100vw;
-    font-family: Arial, sans-serif;
+/* Custom styles for SpeakCraft Login Page */
+/* These styles complement the Tailwind CSS classes used in the component */
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00d4aa;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00b894;
+}
+
+/* Custom focus styles for better accessibility */
+input:focus,
+button:focus {
+  outline: none;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Enhanced animations for the login page */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(0, 212, 170, 0.6);
+  }
+}
+
+@keyframes rotate-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animation classes */
+.logo-animation {
+  animation: fadeInUp 1s ease-out;
+}
+
+.slide-in-left {
+  animation: slideInLeft 1s ease-out;
+}
+
+.slide-in-right {
+  animation: slideInRight 1s ease-out;
+}
+
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.rotate-slow {
+  animation: rotate-slow 20s linear infinite;
+}
+
+/* Enhanced hover effects */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 212, 170, 0.2);
+}
+
+/* Glassmorphism effects */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Gradient text effects */
+.gradient-text {
+  background: linear-gradient(135deg, #00d4aa, #00b894);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Enhanced button effects */
+.btn-primary {
+  background: linear-gradient(135deg, #00d4aa, #00b894);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 212, 170, 0.3);
+}
+
+/* Input field enhancements */
+.input-enhanced {
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.input-enhanced:focus {
+  border-color: #00d4aa;
+  box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.1);
+  transform: scale(1.02);
+}
+
+/* Feature card animations */
+.feature-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Stats counter animation */
+.stats-counter {
+  transition: all 0.3s ease;
+}
+
+.stats-counter:hover {
+  transform: scale(1.1);
+  color: #00d4aa;
+}
+
+/* Responsive adjustments for very small screens */
+@media (max-width: 480px) {
+  .login-form-container {
+    padding: 1rem;
   }
   
-  .image-container {
-    flex: 1;
-    overflow: hidden;
+  .brand-text {
+    font-size: 1.5rem;
   }
-  
-  .login-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
   .form-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 40px;
-    background-color: #f7f7f7;
+    background: rgba(0, 23, 31, 0.8);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .border-white\/20 {
+    border-color: rgba(255, 255, 255, 0.4);
   }
   
-  h2 {
-    margin-bottom: 30px;
+  .text-gray-300 {
+    color: rgba(255, 255, 255, 0.9);
   }
-  
-  .login-form {
-    display: flex;
-    flex-direction: column;
+}
+
+/* Performance optimizations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
-  
-  .form-group {
-    margin-bottom: 20px;
-  }
-  
-  .form-group label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    display: block;
-  }
-  
-  .form-group input {
-    padding: 10px;
-    width: 100%;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-  }
-  
-  .login-button {
-    padding: 12px;
-    background-color: #4b8df8;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  
-  .login-button:hover {
-    background-color: #3b7be0;
-  }
-  
-  @media (max-width: 768px) {
-    .login-container {
-      flex-direction: column;
-    }
-  
-    .image-container,
-    .form-container {
-      flex: unset;
-      width: 100%;
-      height: 50%;
-    }
-  }
+}
   
