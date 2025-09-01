@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-// import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { FaMicrophone, FaStop, FaPlay, FaPause, FaClock } from "react-icons/fa";
 import GaugeChart from "react-gauge-chart";
 import {
@@ -264,9 +264,9 @@ const PaceManagement = () => {
   };
 
   return (
-    <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)]  p-8 flex justify-center items-center">
-      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-6 flex flex-col justify-center items-center">
-        <div className="flex w-full h-full gap-8">
+    <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] p-4 lg:p-8 flex justify-center items-center">
+      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-6 flex flex-col justify-center items-center">
+        <div className="flex flex-col lg:flex-row w-full h-full gap-4 lg:gap-8">
           <div
             className="bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]"
             style={{
@@ -443,7 +443,7 @@ const PaceManagement = () => {
 
                 {/* Action Buttons */}
                 <div
-                  style={{ marginTop: "1rem", display: "flex", gap: "1rem" }}
+                  style={{ marginTop: "1rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}
                 >
                   <button
                     onClick={downloadPDFReport}
@@ -492,12 +492,11 @@ const PaceManagement = () => {
           </div>
 
           {/* Right side */}
-
           <div className="w-full flex flex-col">
-            <div className="flex space-x-4 mb-4">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-4">
               {/* Speech Rate Tab */}
               <button
-                className={`px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 ${
+                className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base ${
                   activeTab === "rate"
                     ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
                     : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
@@ -509,7 +508,7 @@ const PaceManagement = () => {
 
               {/* Pauses & Breathing Tab */}
               <button
-                className={`px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 ${
+                className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base ${
                   activeTab === "pause"
                     ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
                     : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
@@ -530,25 +529,25 @@ const PaceManagement = () => {
                 id="pdf-report"
                 className="flex flex-col w-full"
               >
-                <h2 className="text-2xl font-bold text-white mt-7 mb-4">
+                <h2 className="text-xl lg:text-2xl font-bold text-white mt-7 mb-4">
                   Speech Rate Analysis
                 </h2>
 
                 {/* Metrics Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 w-full">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6 w-full">
                   {/* Word Count */}
-                  <div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
-                    <h3 className="text-white text-lg font-semibold mb-2">
+                  <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
+                    <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">
                       Word Count
                     </h3>
-                    <div className="flex justify-center items-center rounded-full w-24 h-24 sm:w-32 sm:h-32 bg-white/10 text-white text-xl font-semibold">
+                    <div className="flex justify-center items-center rounded-full w-20 h-20 lg:w-24 lg:h-24 xl:w-32 xl:h-32 bg-white/10 text-white text-lg lg:text-xl xl:text-2xl font-semibold">
                       {results.wordCount}
                     </div>
                   </div>
 
                   {/* WPM Gauge */}
-                  <div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
-                    <h3 className="text-white text-lg font-semibold mb-2">
+                  <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
+                    <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">
                       Speech Rate
                     </h3>
                     <GaugeChart
@@ -560,34 +559,34 @@ const PaceManagement = () => {
                       textColor="#fff"
                       style={{
                         width: "100%",
-                        minWidth: "16rem",
-                        height: "8rem",
+                        minWidth: "12rem",
+                        height: "6rem",
                       }}
                     />
-                    <p className="mt-1 text-white font-medium">
+                    <p className="mt-1 text-white font-medium text-sm lg:text-base">
                       {getWpmLabel(results.wpm)}({results.wpm.toFixed(1)} WPM)
                     </p>
                   </div>
 
                   {/* Duration */}
-                  <div className="flex flex-col items-center rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
-                    <h3 className="text-white text-lg font-semibold mb-2">
+                  <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
+                    <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">
                       Duration
                     </h3>
-                    <div className="flex flex-col justify-center items-center rounded-full w-24 h-24 sm:w-32 sm:h-32 bg-white/10 text-white text-xl font-semibold">
-                      <FaClock className="text-white text-2xl mb-1" />
+                    <div className="flex flex-col justify-center items-center rounded-full w-20 h-20 lg:w-24 lg:h-24 xl:w-32 xl:h-32 bg-white/10 text-white text-lg lg:text-xl xl:text-2xl font-semibold">
+                      <FaClock className="text-white text-xl lg:text-2xl mb-1" />
                       <span>{formatTime(results.duration)}</span>
                     </div>
                   </div>
 
                   {/* Confidence & Feedback */}
-                  <div className="flex flex-col items-center w-full rounded-lg p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
-                    <h3 className="text-white text-lg font-semibold mb-2">
+                  <div className="flex flex-col items-center w-full rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
+                    <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">
                       Pacing Consistency
                     </h3>
-                    <div className="w-full bg-white/20 rounded-full h-4 overflow-hidden mb-2">
+                    <div className="w-full bg-white/20 rounded-full h-3 lg:h-4 overflow-hidden mb-2">
                       <div
-                        className={`h-4 rounded-full transition-all duration-500 ${
+                        className={`h-3 lg:h-4 rounded-full transition-all duration-500 ${
                           results.consistencyScore >= 80
                             ? "bg-green-400"
                             : results.consistencyScore >= 60
@@ -597,13 +596,13 @@ const PaceManagement = () => {
                         style={{ width: `${results.consistencyScore}%` }}
                       ></div>
                     </div>
-                    <p className="text-white text-md font-semibold">
+                    <p className="text-white text-sm lg:text-md font-semibold">
                       {results.consistencyScore?.toFixed(1)}%
                     </p>
                   </div>
                 </div>
                 <div
-                  className={`w-full text-md text-center mt-5 px-4 py-3 rounded-lg font-medium shadow-md ${
+                  className={`w-full text-sm lg:text-md text-center mt-5 px-3 lg:px-4 py-3 rounded-lg font-medium shadow-md ${
                     results.prediction === "Fast"
                       ? "bg-red-600/30 text-red-200 border border-red-500"
                       : results.prediction === "Slow"
@@ -615,12 +614,12 @@ const PaceManagement = () => {
                 </div>
 
                 {/* 🧠 Pacing Curve Section */}
-                <div className="mt-5 w-full p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
-                  <h3 className="text-white text-xl font-semibold mb-4">
+                <div className="mt-5 w-full p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
+                  <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">
                     Speech Pacing Curve
                   </h3>
 
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <LineChart data={results.pacingCurve}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
                       <XAxis
@@ -689,19 +688,19 @@ const PaceManagement = () => {
 
             {activeTab === "pause" && (
               <div className="flex flex-col w-full h-full ">
-                <h2 className="text-2xl font-bold text-white mt-2 mb-4">
+                <h2 className="text-xl lg:text-2xl font-bold text-white mt-2 mb-4">
                   Speech Pauses and Breathing Analysis
                 </h2>
 
                 {/* Top Row: Timeline & Distribution Charts */}
-                <div className="flex gap-4 h-1/2 mb-4">
+                <div className="flex flex-col lg:flex-row gap-4 h-1/2 mb-4">
                   {/* Pause Timeline Chart */}
 
-                  <div className=" w-full p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
-                    <h3 className="text-white text-xl font-semibold mb-4">
+                  <div className=" w-full p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
+                    <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">
                       Pause Timeline
                     </h3>
-                    <div className="w-full h-64 bg-white/10 rounded-md flex items-center justify-center text-white/50 text-sm">
+                    <div className="w-full h-48 lg:h-64 bg-white/10 rounded-md flex items-center justify-center text-white/50 text-sm">
                       [Timeline chart will go here – color-coded by pause
                       reason]
                     </div>
@@ -709,23 +708,23 @@ const PaceManagement = () => {
 
                   {/* Pause Distribution Chart */}
 
-                  <div className="w-full p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
-                    <h3 className="text-white text-xl font-semibold mb-4">
+                  <div className="w-full p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
+                    <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">
                       Pause Type Distribution
                     </h3>
-                    <div className="w-full h-64 bg-white/10 rounded-md flex items-center justify-center text-white/50 text-sm">
+                    <div className="w-full h-48 lg:h-64 bg-white/10 rounded-md flex items-center justify-center text-white/50 text-sm">
                       [Pie or bar chart of pause reasons]
                     </div>
                   </div>
                 </div>
 
                 {/* Bottom Row: Scatter Plot & Coaching Tips */}
-                <div className="flex gap-4 h-1/2">
-                  <div className=" w-full p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
-                    <h3 className="text-white text-xl font-semibold mb-4">
+                <div className="flex flex-col lg:flex-row gap-4 h-1/2">
+                  <div className=" w-full p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
+                    <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">
                       Breathing Pattern Scatter
                     </h3>
-                    <div className="w-full h-64 bg-white/10 rounded-md flex items-center justify-center text-white/50 text-sm">
+                    <div className="w-full h-48 lg:h-64 bg-white/10 rounded-md flex items-center justify-center text-white/50 text-sm">
                       [Scatter plot: pause duration vs breath value, colored by
                       breath type]
                     </div>
