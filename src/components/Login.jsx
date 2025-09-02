@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import logo from "../assets/images/logo.png";
 import titleIcon from "../assets/images/titleIcon.png";
+import { login } from "../utils/auth";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -9,6 +10,9 @@ const Login = () => {
   });
 
   const [isVisible, setIsVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     setIsVisible(true);
@@ -19,12 +23,39 @@ const Login = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    // Clear errors when user starts typing
+    if (error) setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login attempt:", formData);
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const data = await login(formData.email, formData.password);
+      
+      setSuccess("Login successful! Redirecting...");
+      
+      // Redirect to dashboard after successful login
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1500);
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    setError("Google login not implemented yet");
+  };
+
+  const handleTwitterLogin = () => {
+    setError("Twitter login not implemented yet");
   };
 
   return (
@@ -164,6 +195,19 @@ const Login = () => {
               <p className="text-gray-300">Sign in to continue your presentation journey</p>
             </div>
 
+            {/* Error and Success Messages */}
+            {error && (
+              <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+            
+            {success && (
+              <div className="bg-green-500/20 border border-green-500/50 text-green-200 px-4 py-3 rounded-lg text-sm">
+                {success}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="group">
                 <label className="block text-sm font-semibold text-white mb-2 group-focus-within:text-[#00d4aa] transition-colors duration-300">
@@ -177,7 +221,8 @@ const Login = () => {
                     onChange={handleChange}
                     placeholder="Enter your email"
                     required
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] focus:border-transparent transition-all duration-300 group-hover:border-[#00d4aa]/50"
+                    disabled={isLoading}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] focus:border-transparent transition-all duration-300 group-hover:border-[#00d4aa]/50 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#00d4aa]/0 to-[#00d4aa]/0 group-focus-within:from-[#00d4aa]/10 group-focus-within:to-[#00d4aa]/5 transition-all duration-300 pointer-events-none"></div>
                 </div>
@@ -195,7 +240,8 @@ const Login = () => {
                     onChange={handleChange}
                     placeholder="Enter your password"
                     required
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] focus:border-transparent transition-all duration-300 group-hover:border-[#00d4aa]/50"
+                    disabled={isLoading}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] focus:border-transparent transition-all duration-300 group-hover:border-[#00d4aa]/50 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#00d4aa]/0 to-[#00d4aa]/0 group-focus-within:from-[#00d4aa]/10 group-focus-within:to-[#00d4aa]/5 transition-all duration-300 pointer-events-none"></div>
                 </div>
@@ -216,9 +262,17 @@ const Login = () => {
 
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-[#00d4aa] to-[#00b894] text-white font-bold py-3 px-4 rounded-lg hover:from-[#00b894] hover:to-[#00a085] transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-[#00d4aa]/25"
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-[#00d4aa] to-[#00b894] text-white font-bold py-3 px-4 rounded-lg hover:from-[#00b894] hover:to-[#00a085] transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-[#00d4aa]/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                Sign In
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Signing In...
+                  </div>
+                ) : (
+                  "Sign In"
+                )}
               </button>
             </form>
 
@@ -243,7 +297,12 @@ const Login = () => {
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-3">
-                <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 dark:border-white/20 rounded-lg shadow-sm bg-gray-50 dark:bg-white/10 text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/20 hover:border-[#00d4aa]/50 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] transition-all duration-300 group">
+                <button 
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={isLoading}
+                  className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 dark:border-white/20 rounded-lg shadow-sm bg-gray-50 dark:bg-white/10 text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/20 hover:border-[#00d4aa]/50 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -253,7 +312,12 @@ const Login = () => {
                   <span className="ml-2">Google</span>
                 </button>
 
-                <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 dark:border-white/20 rounded-lg shadow-sm bg-gray-50 dark:bg-white/10 text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/20 hover:border-[#00d4aa]/50 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] transition-all duration-300 group">
+                <button 
+                  type="button"
+                  onClick={handleTwitterLogin}
+                  disabled={isLoading}
+                  className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 dark:border-white/20 rounded-lg shadow-sm bg-gray-50 dark:bg-white/10 text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/20 hover:border-[#00d4aa]/50 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
                   </svg>
