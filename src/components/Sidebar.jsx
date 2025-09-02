@@ -15,7 +15,7 @@ const Sidebar = () => {
     { name: "Dashboard", icon: <MdDashboardCustomize className="text-xl" />, path: "/dashboard" },
     { name: "Present", icon: <MdCoPresent className="text-xl" />, path: "/present" },
     { name: "Face Detection", icon: <FaCamera className="text-xl" />, path: "/face-detection" },
-    { name: "Pace Management", icon: <FaPause className="text-xl" />, path: "/pace-management" },
+    { name: "Pace Management", icon: <FaPause className="text-xl" />, path: "/pace-management-home" },
     { name: "Filler Words", icon: <FaMicrophone className="text-xl" />, path: "/filler-words" },
     { name: "Pitch and Tone", icon: <FaChartLine className="text-xl" />, path: "/pitch-tone" },
     { name: "Recordings", icon: <BiSolidVideoRecording className="text-xl" />, path: "/recordings" },
