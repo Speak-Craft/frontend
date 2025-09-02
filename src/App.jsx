@@ -3,25 +3,48 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Present from "./components/Present";
 import PaceManagement from "./components/PaceManagement";
+import PaceManagementHome from "./components/PaceManagementHome";
+import FillerWords from "./components/FillerWords";
+import Loudness from "./components/Loudness";
+import EmotionAnalysis from "./components/EmotionAnalysis";
 import Login from "./components/Login";
+import Dashboard from "./components/Dashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const App = () => {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route
-          path="/*"
-          element={
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
             <div className="flex">
               <Sidebar />
               <div className="flex-1">
-                <Routes>
-                  <Route path="present" element={<Present />} />
-                  <Route path="pace-management" element={<PaceManagement />} />
-                </Routes>
+                <Dashboard />
               </div>
             </div>
+          </ProtectedRoute>
+        } />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <div className="flex">
+                <Sidebar />
+                <div className="flex-1">
+                  <Routes>
+                    <Route path="present" element={<Present />} />
+                    <Route path="pace-management-home" element={<PaceManagementHome />} />
+                    <Route path="pace-management" element={<PaceManagement />} />
+                    <Route path="filler-words" element={<FillerWords />} />
+                    <Route path="loudness" element={<Loudness />} />
+                    <Route path="emotion-analysis" element={<EmotionAnalysis />} />
+                  </Routes>
+                </div>
+              </div>
+            </ProtectedRoute>
           }
         />
       </Routes>
