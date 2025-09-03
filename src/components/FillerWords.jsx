@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { FaComment, FaMicrophone, FaStop, FaPlay, FaPause, FaUpload, FaSave, FaClock, FaChartBar, FaHistory } from "react-icons/fa";
 import axios from "axios";
+import image01 from "../assets/images/fillerbg.png";
 
 const FillerWords = () => {
   const [activeTab, setActiveTab] = useState("record"); // record | saved
@@ -790,6 +791,185 @@ const FillerWords = () => {
                 )}
               </div>
             )}
+
+            {/* Sticky Animated Square Image - Bottom Right Corner */}
+            <motion.div
+              className="fixed bottom-6 right-6 w-48 h-48 overflow-hidden rounded-2xl border-2 border-red-400/50 shadow-2xl backdrop-blur-sm"
+              initial={{ opacity: 0, scale: 0.5, rotate: -180 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1, 
+                rotate: 0,
+                y: [0, -10, 0]
+              }}
+              transition={{ 
+                duration: 1.2, 
+                delay: 0.5,
+                y: {
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }
+              }}
+              whileHover={{ 
+                scale: 1.15, 
+                rotate: [0, 5, -5, 0],
+                boxShadow: "0 20px 40px rgba(255, 0, 0, 0.3)"
+              }}
+              style={{ 
+                zIndex: 1000,
+                position: 'fixed'
+              }}
+            >
+              {/* Animated Border Glow */}
+              <motion.div
+                className="absolute inset-0 rounded-2xl"
+                animate={{
+                  boxShadow: [
+                    "0 0 20px rgba(255, 0, 0, 0.3)",
+                    "0 0 30px rgba(255, 0, 0, 0.6)",
+                    "0 0 20px rgba(255, 0, 0, 0.3)"
+                  ]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+
+              {/* Floating Particles Background */}
+              <div className="absolute inset-0 pointer-events-none z-10">
+                {[...Array(6)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute w-2 h-2 bg-gradient-to-r from-red-400 to-pink-500 rounded-full opacity-80"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                    }}
+                    animate={{
+                      y: [0, -20, 0],
+                      x: [0, Math.random() * 10 - 5, 0],
+                      opacity: [0.6, 1, 0.6],
+                      scale: [1, 1.5, 1],
+                      rotate: [0, 360, 0]
+                    }}
+                    transition={{
+                      duration: 4 + Math.random() * 2,
+                      repeat: Infinity,
+                      delay: i * 0.5,
+                      ease: "easeInOut",
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Main Image */}
+              <motion.img
+                src={image01}
+                alt="Filler Word Detection"
+                className="w-full h-full object-cover"
+                initial={{ scale: 1.2, rotate: 10 }}
+                animate={{ 
+                  scale: 1,
+                  rotate: 0
+                }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                whileHover={{ 
+                  scale: 1.1,
+                  rotate: [0, 2, -2, 0]
+                }}
+              />
+
+              {/* Animated Overlay */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"
+                initial={{ opacity: 0 }}
+                animate={{ 
+                  opacity: 1,
+                  background: [
+                    "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
+                    "linear-gradient(to top, rgba(255,0,0,0.2), transparent)",
+                    "linear-gradient(to top, rgba(0,0,0,0.7), transparent)"
+                  ]
+                }}
+                transition={{ 
+                  duration: 1, 
+                  delay: 0.7,
+                  background: {
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }
+                }}
+              />
+
+              {/* Animated Bottom Info Panel */}
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                  background: [
+                    "linear-gradient(to top, rgba(0,0,0,0.9), transparent)",
+                    "linear-gradient(to top, rgba(255,0,0,0.3), transparent)",
+                    "linear-gradient(to top, rgba(0,0,0,0.9), transparent)"
+                  ]
+                }}
+                transition={{ 
+                  duration: 0.8, 
+                  delay: 1,
+                  background: {
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }
+                }}
+              >
+                <motion.h3 
+                  className="text-white font-bold text-sm mb-1"
+                  animate={{
+                    color: ["#ffffff", "#ff6b6b", "#ffffff"]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  🎤 Filler Words
+                </motion.h3>
+                <motion.p 
+                  className="text-white/90 text-xs font-medium"
+                  animate={{
+                    opacity: [0.9, 1, 0.9]
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  Detection
+                </motion.p>
+              </motion.div>
+
+              {/* Pulsing Ring Effect */}
+              <motion.div
+                className="absolute inset-0 rounded-2xl border-2 border-red-400/30"
+                animate={{
+                  scale: [1, 1.1, 1],
+                  opacity: [0.3, 0.7, 0.3]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            </motion.div>
           </div>
         </div>
       </div>

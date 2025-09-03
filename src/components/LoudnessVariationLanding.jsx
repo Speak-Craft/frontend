@@ -1,11 +1,37 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FaTachometerAlt, FaClock, FaPause, FaMicrophone, FaChartLine, FaBrain, FaBullseye, FaTrophy, FaRocket, FaPlay, FaUsers, FaStar, FaArrowRight, FaCheckCircle, FaLightbulb, FaEye, FaCog, FaChartBar, FaVolumeUp, FaCrosshairs, FaAward } from 'react-icons/fa';
-import pace1 from '../assets/images/pace1.png';
-import pace2 from '../assets/images/pace2.png';
+import { 
+  FaVolumeUp, 
+  FaMicrophone, 
+  FaChartLine, 
+  FaTrophy, 
+  FaRocket, 
+  FaUsers, 
+  FaStar, 
+  FaCheckCircle, 
+  FaLightbulb, 
+  FaEye, 
+  FaCog, 
+  FaChartBar, 
+  FaCrosshairs, 
+  FaAward,
+  FaBullseye,
+  FaPlay,
+  FaPause,
+  FaClock,
+  FaGamepad,
+  FaMedal,
+  FaFire,
+  FaGem,
+  FaBrain,
+  FaGlobe,
+  FaSlidersH
+} from 'react-icons/fa';
+import loudness1 from '../assets/images/loudness2.jpg';
+import loudness2 from '../assets/images/loudness1.jpg';
 
-const PaceManagementHome = () => {
+const LoudnessVariationLanding = () => {
   return (
     <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] p-4 lg:p-8 flex justify-center items-center">
       <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-6 flex flex-col justify-center items-center">
@@ -35,14 +61,14 @@ const PaceManagementHome = () => {
               transition={{ duration: 0.8 }}
             >
               <h2 className="text-2xl lg:text-3xl font-bold text-white mb-2">
-                <span className="text-[#00d4aa]">Speech Pace</span> Management
+                <span className="text-[#f59e0b]">Loudness Variation</span> Training
               </h2>
               <p className="text-gray-300 text-sm lg:text-base">
-                Master the art of perfect pacing for impactful presentations
+                Master vocal dynamics for engaging presentations
               </p>
             </motion.div>
 
-            {/* What is Speech Pace Management */}
+            {/* What is Loudness Variation */}
             <motion.div
               className="w-full bg-white/10 backdrop-blur-lg rounded-xl p-4 lg:p-6 border border-white/20 shadow-lg mb-6"
               initial={{ opacity: 0, y: 20 }}
@@ -50,15 +76,16 @@ const PaceManagementHome = () => {
               transition={{ duration: 0.8, delay: 0.2 }}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#00d4aa] to-[#00b894] rounded-full flex items-center justify-center">
-                  <FaMicrophone className="text-white text-lg" />
+                <div className="w-10 h-10 bg-gradient-to-br from-[#f59e0b] to-[#d97706] rounded-full flex items-center justify-center">
+                  <FaVolumeUp className="text-white text-lg" />
                 </div>
-                <h3 className="text-white font-semibold text-lg">What is Speech Pace Management?</h3>
+                <h3 className="text-white font-semibold text-lg">What is Loudness Variation?</h3>
               </div>
               
               <p className="text-gray-300 text-sm leading-relaxed">
-                Speech pace management is the art of controlling your speaking speed, rhythm, and pauses to deliver clear, 
-                engaging, and impactful presentations. It's about finding the perfect balance between speed and clarity.
+                Loudness variation is the art of controlling vocal volume and intensity to create engaging, 
+                dynamic presentations. Our AI-powered system detects monotone delivery, excessive volume shifts, 
+                and helps you develop optimal vocal modulation for Sri Lankan English speakers.
               </p>
             </motion.div>
 
@@ -71,7 +98,7 @@ const PaceManagementHome = () => {
             >
               <div className="flex items-center gap-3 mb-4">
                 <motion.div 
-                  className="w-10 h-10 bg-gradient-to-br from-[#00d4aa] to-[#00b894] rounded-full flex items-center justify-center"
+                  className="w-10 h-10 bg-gradient-to-br from-[#f59e0b] to-[#d97706] rounded-full flex items-center justify-center"
                   animate={{ rotate: [0, 5, -5, 0] }}
                   transition={{ duration: 4, repeat: Infinity }}
                 >
@@ -85,15 +112,32 @@ const PaceManagementHome = () => {
                   className="flex items-center gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-300"
                   whileHover={{ scale: 1.02, x: 5 }}
                 >
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                    <FaTachometerAlt className="text-white text-sm" />
+                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                    <FaSlidersH className="text-white text-sm" />
                   </div>
                   <div>
-                    <span className="text-white font-medium text-sm">Speech Rate Analysis</span>
-                    <p className="text-gray-400 text-xs">Monitor WPM and get real-time feedback</p>
+                    <span className="text-white font-medium text-sm">Volume Analysis</span>
+                    <p className="text-gray-400 text-xs">RMS energy levels and intensity tracking</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      <span className="text-green-400 text-xs">120-150 WPM Target</span>
+                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                      <span className="text-orange-400 text-xs">Real-time Monitoring</span>
+                    </div>
+                  </div>
+                </motion.div>
+                
+                <motion.div 
+                  className="flex items-center gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-300"
+                  whileHover={{ scale: 1.02, x: 5 }}
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center">
+                    <FaMicrophone className="text-white text-sm" />
+                  </div>
+                  <div>
+                    <span className="text-white font-medium text-sm">Monotone Detection</span>
+                    <p className="text-gray-400 text-xs">Identify flat delivery patterns</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                      <span className="text-yellow-400 text-xs">AI-Powered Analysis</span>
                     </div>
                   </div>
                 </motion.div>
@@ -103,31 +147,14 @@ const PaceManagementHome = () => {
                   whileHover={{ scale: 1.02, x: 5 }}
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-                    <FaPause className="text-white text-sm" />
+                    <FaSlidersH className="text-white text-sm" />
                   </div>
                   <div>
-                    <span className="text-white font-medium text-sm">Pause Management</span>
-                    <p className="text-gray-400 text-xs">Strategic pausing for emphasis and clarity</p>
+                    <span className="text-white font-medium text-sm">Dynamic Control</span>
+                    <p className="text-gray-400 text-xs">Learn optimal volume modulation</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                      <span className="text-yellow-400 text-xs">0.5-2s Optimal Pauses</span>
-                    </div>
-                  </div>
-                </motion.div>
-                
-                <motion.div 
-                  className="flex items-center gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all duration-300"
-                  whileHover={{ scale: 1.02, x: 5 }}
-                >
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                    <FaClock className="text-white text-sm" />
-                  </div>
-                  <div>
-                    <span className="text-white font-medium text-sm">Rhythm Control</span>
-                    <p className="text-gray-400 text-xs">Develop consistent speaking rhythm</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                      <span className="text-purple-400 text-xs">Natural Flow Patterns</span>
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-green-400 text-xs">Personalized Training</span>
                     </div>
                   </div>
                 </motion.div>
@@ -154,17 +181,31 @@ const PaceManagementHome = () => {
               
               <div className="grid grid-cols-3 gap-2">
                 <motion.div 
-                  className="text-center p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300"
+                  className="text-center p-3 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-lg border border-orange-500/30 hover:border-orange-400/50 transition-all duration-300"
                   whileHover={{ scale: 1.05, y: -2 }}
                 >
                   <motion.div
                     animate={{ rotate: [0, 5, -5, 0] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   >
-                    <FaBullseye className="text-blue-400 text-lg mx-auto mb-2" />
+                    <FaTrophy className="text-orange-400 text-lg mx-auto mb-2" />
                   </motion.div>
-                  <p className="text-white text-xs font-medium">Rate Mastery</p>
-                  <div className="w-2 h-2 bg-blue-400 rounded-full mx-auto mt-1 animate-pulse"></div>
+                  <p className="text-white text-xs font-medium">Volume Master</p>
+                  <div className="w-2 h-2 bg-orange-400 rounded-full mx-auto mt-1 animate-pulse"></div>
+                </motion.div>
+                
+                <motion.div 
+                  className="text-center p-3 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300"
+                  whileHover={{ scale: 1.05, y: -2 }}
+                >
+                  <motion.div
+                    animate={{ rotate: [0, -5, 5, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                  >
+                    <FaRocket className="text-yellow-400 text-lg mx-auto mb-2" />
+                  </motion.div>
+                  <p className="text-white text-xs font-medium">Dynamic Pro</p>
+                  <div className="w-2 h-2 bg-yellow-400 rounded-full mx-auto mt-1 animate-pulse"></div>
                 </motion.div>
                 
                 <motion.div 
@@ -172,27 +213,13 @@ const PaceManagementHome = () => {
                   whileHover={{ scale: 1.05, y: -2 }}
                 >
                   <motion.div
-                    animate={{ rotate: [0, -5, 5, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                  >
-                    <FaBrain className="text-green-400 text-lg mx-auto mb-2" />
-                  </motion.div>
-                  <p className="text-white text-xs font-medium">Pause Pro</p>
-                  <div className="w-2 h-2 bg-green-400 rounded-full mx-auto mt-1 animate-pulse"></div>
-                </motion.div>
-                
-                <motion.div 
-                  className="text-center p-3 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300"
-                  whileHover={{ scale: 1.05, y: -2 }}
-                >
-                  <motion.div
                     animate={{ rotate: [0, 5, -5, 0] }}
                     transition={{ duration: 2, repeat: Infinity, delay: 1 }}
                   >
-                    <FaRocket className="text-purple-400 text-lg mx-auto mb-2" />
+                    <FaBullseye className="text-green-400 text-lg mx-auto mb-2" />
                   </motion.div>
-                  <p className="text-white text-xs font-medium">Flow Champion</p>
-                  <div className="w-2 h-2 bg-purple-400 rounded-full mx-auto mt-1 animate-pulse"></div>
+                  <p className="text-white text-xs font-medium">Engagement King</p>
+                  <div className="w-2 h-2 bg-green-400 rounded-full mx-auto mt-1 animate-pulse"></div>
                 </motion.div>
               </div>
             </motion.div>
@@ -200,9 +227,9 @@ const PaceManagementHome = () => {
 
           {/* Right Side - Enhanced Context & Navigation */}
           <div className="w-full flex flex-col space-y-6">
-            {/* Speech Pace Management Context */}
+            {/* Loudness Variation Context */}
             <motion.div
-              className="bg-gradient-to-br from-[#00171f] via-[#003b46] to-[#07575b] dark:from-[#003b46] dark:via-[#07575b] dark:to-[#0084a6] rounded-2xl p-6 border-2 border-[#00ccff]/60 shadow-2xl backdrop-blur-sm relative overflow-hidden"
+              className="bg-gradient-to-br from-[#00171f] via-[#003b46] to-[#07575b] dark:from-[#003b46] dark:via-[#07575b] dark:to-[#0084a6] rounded-2xl p-6 border-2 border-[#f59e0b]/60 shadow-2xl backdrop-blur-sm relative overflow-hidden"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
@@ -210,12 +237,12 @@ const PaceManagementHome = () => {
               {/* Animated Background Elements */}
               <div className="absolute inset-0 overflow-hidden">
                 <motion.div
-                  className="absolute top-4 right-4 w-16 h-16 bg-[#00d4aa]/20 rounded-full blur-lg"
+                  className="absolute top-4 right-4 w-16 h-16 bg-[#f59e0b]/20 rounded-full blur-lg"
                   animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 />
                 <motion.div
-                  className="absolute bottom-4 left-4 w-12 h-12 bg-[#00b894]/30 rounded-full blur-md"
+                  className="absolute bottom-4 left-4 w-12 h-12 bg-[#d97706]/30 rounded-full blur-md"
                   animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.7, 0.4] }}
                   transition={{ duration: 4, repeat: Infinity, delay: 1 }}
                 />
@@ -224,27 +251,27 @@ const PaceManagementHome = () => {
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-4">
                   <motion.div
-                    className="w-12 h-12 bg-gradient-to-br from-[#00d4aa] to-[#00b894] rounded-xl flex items-center justify-center"
+                    className="w-12 h-12 bg-gradient-to-br from-[#f59e0b] to-[#d97706] rounded-xl flex items-center justify-center"
                     animate={{ rotate: [0, 5, -5, 0] }}
                     transition={{ duration: 4, repeat: Infinity }}
                   >
-                    <FaChartLine className="text-white text-lg" />
+                    <FaVolumeUp className="text-white text-lg" />
                   </motion.div>
-                  <h3 className="text-[#00ccff] font-bold text-lg">Why Speech Pace Matters</h3>
+                  <h3 className="text-[#f59e0b] font-bold text-lg">Why Loudness Variation Matters</h3>
                 </div>
                 
                 <div className="space-y-3 text-sm text-gray-300">
                   <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-[#00d4aa] rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Optimal pace (120-150 WPM) keeps audiences engaged and improves comprehension</p>
+                    <div className="w-2 h-2 bg-[#f59e0b] rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Prevents monotone delivery that reduces audience engagement and clarity</p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-[#00d4aa] rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Strategic pauses create emphasis and allow listeners to process information</p>
+                    <div className="w-2 h-2 bg-[#f59e0b] rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Enhances presentation impact and professional credibility</p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-[#00d4aa] rounded-full mt-2 flex-shrink-0"></div>
-                    <p>Consistent rhythm builds confidence and professional credibility</p>
+                    <div className="w-2 h-2 bg-[#f59e0b] rounded-full mt-2 flex-shrink-0"></div>
+                    <p>Tailored for Sri Lankan English speech patterns and cultural context</p>
                   </div>
                 </div>
               </div>
@@ -257,42 +284,42 @@ const PaceManagementHome = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.8 }}
             >
-              <h3 className="text-[#00ccff] font-bold text-lg mb-4">Core Features</h3>
+              <h3 className="text-[#f59e0b] font-bold text-lg mb-4">Core Features</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-[#00d4aa] to-[#00b894] rounded-lg flex items-center justify-center">
-                    <FaTachometerAlt className="text-white text-sm" />
+                  <div className="w-8 h-8 bg-gradient-to-br from-[#f59e0b] to-[#d97706] rounded-lg flex items-center justify-center">
+                    <FaSlidersH className="text-white text-sm" />
                   </div>
                   <div>
-                    <p className="text-white text-xs font-medium">Real-time Tracking</p>
-                    <p className="text-gray-400 text-xs">WPM monitoring</p>
+                    <p className="text-white text-xs font-medium">RMS Analysis</p>
+                    <p className="text-gray-400 text-xs">Energy level tracking</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg flex items-center justify-center">
-                    <FaVolumeUp className="text-white text-sm" />
+                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                    <FaMicrophone className="text-white text-sm" />
                   </div>
                   <div>
-                    <p className="text-white text-xs font-medium">Smart Alerts</p>
-                    <p className="text-gray-400 text-xs">Fast/slow warnings</p>
+                    <p className="text-white text-xs font-medium">Monotone Detection</p>
+                    <p className="text-gray-400 text-xs">Flat delivery alerts</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                    <FaBrain className="text-white text-sm" />
+                  <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center">
+                    <FaSlidersH className="text-white text-sm" />
                   </div>
                   <div>
-                    <p className="text-white text-xs font-medium">AI Recommendations</p>
-                    <p className="text-gray-400 text-xs">Personalized tips</p>
+                    <p className="text-white text-xs font-medium">Volume Control</p>
+                    <p className="text-gray-400 text-xs">Dynamic modulation</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
                     <FaChartBar className="text-white text-sm" />
                   </div>
                   <div>
-                    <p className="text-white text-xs font-medium">Visualizations</p>
-                    <p className="text-gray-400 text-xs">Speed graphs</p>
+                    <p className="text-white text-xs font-medium">Progress Tracking</p>
+                    <p className="text-gray-400 text-xs">Improvement metrics</p>
                   </div>
                 </div>
               </div>
@@ -307,8 +334,8 @@ const PaceManagementHome = () => {
             >
               {/* Main Practice Card */}
               <Link
-                to="/pace-management"
-                className="group bg-gradient-to-br from-[#00d4aa]/20 to-[#00b894]/20 hover:from-[#00d4aa]/30 hover:to-[#00b894]/30 rounded-xl p-4 border-2 border-[#00d4aa]/30 hover:border-[#00d4aa]/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                to="/loudness"
+                className="group bg-gradient-to-br from-[#f59e0b]/20 to-[#d97706]/20 hover:from-[#f59e0b]/30 hover:to-[#d97706]/30 rounded-xl p-4 border-2 border-[#f59e0b]/30 hover:border-[#f59e0b]/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
                 <div className="flex flex-col lg:flex-row items-center gap-4">
                   {/* Practice Image - Top/Left Side */}
@@ -318,7 +345,7 @@ const PaceManagementHome = () => {
                     transition={{ duration: 0.3 }}
                   >
                     <img 
-                      src={pace1} 
+                      src={loudness1} 
                       alt="Practice Session" 
                       className="w-full h-full object-cover"
                     />
@@ -327,24 +354,24 @@ const PaceManagementHome = () => {
                   {/* Context - Bottom/Right Side */}
                   <div className="flex-1 text-center lg:text-left">
                     <h4 className="text-white font-bold text-sm mb-2">Practice Session</h4>
-                    <p className="text-gray-300 text-xs mb-3">Record your speech and get real-time pace analysis with WPM tracking and pause detection</p>
+                    <p className="text-gray-300 text-xs mb-3">Record your speech and get real-time loudness analysis with volume variation feedback</p>
                     
                     <div className="space-y-2 mb-3">
                       <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
-                        <FaTachometerAlt className="text-[#00d4aa]" />
-                        <span>WPM Tracking</span>
+                        <FaSlidersH className="text-[#f59e0b]" />
+                        <span>RMS Energy Analysis</span>
                       </div>
                       <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
-                        <FaPause className="text-[#00d4aa]" />
-                        <span>Pause Analysis</span>
+                        <FaMicrophone className="text-[#f59e0b]" />
+                        <span>Monotone Detection</span>
                       </div>
                       <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
-                        <FaChartLine className="text-[#00d4aa]" />
-                        <span>Rhythm Control</span>
+                        <FaSlidersH className="text-[#f59e0b]" />
+                        <span>Volume Control</span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-[#00d4aa] font-medium">
+                    <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-[#f59e0b] font-medium">
                       <span>Start Recording</span>
                       <FaPlay className="text-xs" />
                     </div>
@@ -352,21 +379,21 @@ const PaceManagementHome = () => {
                 </div>
               </Link>
               
-              {/* Gamification Card */}
+              {/* Training Activities Card */}
               <Link
-                to="/pace-gamification"
+                to="/loudness-training"
                 className="group bg-gradient-to-br from-yellow-500/20 to-orange-500/20 hover:from-yellow-500/30 hover:to-orange-500/30 rounded-xl p-4 border-2 border-yellow-500/30 hover:border-yellow-500/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
                 <div className="flex flex-col lg:flex-row items-center gap-4">
-                  {/* Gamification Image - Top/Left Side */}
+                  {/* Training Image - Top/Left Side */}
                   <motion.div
                     className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.3 }}
                   >
                     <img 
-                      src={pace2} 
-                      alt="Gamification Hub" 
+                      src={loudness2} 
+                      alt="Training Activities" 
                       className="w-full h-full object-cover"
                     />
                   </motion.div>
@@ -374,25 +401,25 @@ const PaceManagementHome = () => {
                   {/* Context - Bottom/Right Side */}
                   <div className="flex-1 text-center lg:text-left">
                     <h4 className="text-white font-bold text-sm mb-2">Training Activities</h4>
-                    <p className="text-gray-300 text-xs mb-3">Earn badges, compete with others, and track your progress through engaging challenges</p>
+                    <p className="text-gray-300 text-xs mb-3">Engage in structured exercises and challenges to master vocal dynamics and loudness control</p>
                     
                     <div className="space-y-2 mb-3">
                       <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
-                        <FaBullseye className="text-yellow-400" />
-                        <span>Achievement Badges</span>
-                      </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
-                        <FaRocket className="text-yellow-400" />
-                        <span>Leaderboard</span>
+                        <FaGamepad className="text-yellow-400" />
+                        <span>Interactive Exercises</span>
                       </div>
                       <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
                         <FaTrophy className="text-yellow-400" />
                         <span>Daily Challenges</span>
                       </div>
+                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                        <FaMedal className="text-yellow-400" />
+                        <span>Achievement Badges</span>
+                      </div>
                     </div>
                     
                     <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-yellow-400 font-medium">
-                      <span>View Progress</span>
+                      <span>Start Training</span>
                       <FaRocket className="text-xs" />
                     </div>
                   </div>
@@ -409,31 +436,31 @@ const PaceManagementHome = () => {
             >
               {/* Video Section */}
               <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-2xl p-4 border border-white/20">
-                <h3 className="text-[#00ccff] font-bold text-lg mb-3">How It Works</h3>
+                <h3 className="text-[#f59e0b] font-bold text-lg mb-3">How It Works</h3>
                 <div className="bg-gray-800/50 rounded-xl p-6 border-2 border-dashed border-gray-600 flex flex-col items-center justify-center min-h-[180px]">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#00d4aa] to-[#00b894] rounded-full flex items-center justify-center mb-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#f59e0b] to-[#d97706] rounded-full flex items-center justify-center mb-3">
                     <FaPlay className="text-white text-lg ml-1" />
                   </div>
                   <p className="text-gray-400 text-sm text-center">Video demonstration coming soon</p>
-                  <p className="text-gray-500 text-xs text-center mt-1">Learn how our AI analyzes speech pace in real-time</p>
+                  <p className="text-gray-500 text-xs text-center mt-1">Learn how our AI analyzes loudness variation in real-time</p>
                 </div>
               </div>
 
               {/* Compact Benefits Section */}
               <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-2xl p-4 border border-white/20">
-                <h3 className="text-[#00ccff] font-bold text-lg mb-3">Key Benefits</h3>
+                <h3 className="text-[#f59e0b] font-bold text-lg mb-3">Key Benefits</h3>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <FaCheckCircle className="text-green-400 text-xs flex-shrink-0" />
-                    <p className="text-white text-xs">Deliver smoother presentations with consistent pace</p>
+                    <p className="text-white text-xs">Eliminate monotone delivery and boost audience engagement</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <FaCheckCircle className="text-green-400 text-xs flex-shrink-0" />
-                    <p className="text-white text-xs">Keep audience engaged with optimal pacing</p>
+                    <p className="text-white text-xs">Improve presentation clarity and professional credibility</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <FaCheckCircle className="text-green-400 text-xs flex-shrink-0" />
-                    <p className="text-white text-xs">Build speaking confidence & master pace control</p>
+                    <p className="text-white text-xs">Build confidence in vocal delivery and public speaking</p>
                   </div>
                 </div>
               </div>
@@ -445,4 +472,4 @@ const PaceManagementHome = () => {
   );
 };
 
-export default PaceManagementHome;
+export default LoudnessVariationLanding;

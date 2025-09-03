@@ -11,6 +11,7 @@ import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import FillerWordsDetectionHome from "./components/FillerWordsDetectionHome";
+import LoudnessVariationLanding from "./components/LoudnessVariationLanding";
 
 const App = () => {
   return (
@@ -41,6 +42,7 @@ const App = () => {
                     <Route path="pace-management" element={<PaceManagement />} />
                     <Route path="filler-words-landing" element={<FillerWordsDetectionHome />} />
                     <Route path="filler-words-detection" element={<FillerWords />} />
+                    <Route path="loudness-variation-landing" element={<LoudnessVariationLanding />} />
                     <Route path="loudness" element={<Loudness />} />
                     <Route path="emotion-analysis" element={<EmotionAnalysis />} />
                   </Routes>

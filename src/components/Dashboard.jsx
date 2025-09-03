@@ -229,7 +229,7 @@ const Dashboard = () => {
                   whileTap={{ scale: 0.95 }}
                 >
                   <Link 
-                    to="/loudness" 
+                    to="/loudness-variation-landing" 
                     className="block group relative overflow-hidden bg-gradient-to-br from-[#f59e0b] via-[#d97706] to-[#b45309] rounded-2xl p-6 shadow-2xl hover:shadow-[#f59e0b]/25 transition-all duration-500 border-2 border-transparent hover:border-[#f59e0b]/50"
                   >
                     {/* Animated Background */}
