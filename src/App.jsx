@@ -36,9 +36,9 @@ const App = () => {
                 <div className="flex-1">
                   <Routes>
                     <Route path="present" element={<Present />} />
-                    <Route path="pace-management-home" element={<PaceManagementHome />} />
+                    <Route path="pace-management-landing" element={<PaceManagementHome />} />
                     <Route path="pace-management" element={<PaceManagement />} />
-                    <Route path="filler-words" element={<FillerWords />} />
+                    <Route path="filler-words-detection" element={<FillerWords />} />
                     <Route path="loudness" element={<Loudness />} />
                     <Route path="emotion-analysis" element={<EmotionAnalysis />} />
                   </Routes>
