@@ -115,7 +115,7 @@ const Dashboard = () => {
                   whileTap={{ scale: 0.95 }}
                 >
                   <Link 
-                    to="/filler-words" 
+                    to="/filler-words-detection" 
                     className="block group relative overflow-hidden bg-gradient-to-br from-[#00d4aa] via-[#00b894] to-[#00a085] rounded-2xl p-6 shadow-2xl hover:shadow-[#00d4aa]/25 transition-all duration-500 border-2 border-transparent hover:border-[#00d4aa]/50"
                   >
                     {/* Animated Background */}
