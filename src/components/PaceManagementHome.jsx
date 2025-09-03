@@ -310,10 +310,10 @@ const PaceManagementHome = () => {
                 to="/pace-management"
                 className="group bg-gradient-to-br from-[#00d4aa]/20 to-[#00b894]/20 hover:from-[#00d4aa]/30 hover:to-[#00b894]/30 rounded-xl p-4 border-2 border-[#00d4aa]/30 hover:border-[#00d4aa]/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
-                <div className="flex items-center gap-4">
-                  {/* Practice Image - Left Side */}
+                <div className="flex flex-col lg:flex-row items-center gap-4">
+                  {/* Practice Image - Top/Left Side */}
                   <motion.div
-                    className="w-40 h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
+                    className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.3 }}
                   >
@@ -324,19 +324,29 @@ const PaceManagementHome = () => {
                     />
                   </motion.div>
                   
-                  {/* Context - Right Side */}
-                  <div className="flex-1">
-                    <h4 className="text-white font-bold text-sm mb-1">Practice Session</h4>
-                    <p className="text-gray-300 text-xs mb-2">Record & analyze speech</p>
-                    <div className="flex gap-3 text-xs text-gray-400">
-                      <span className="flex items-center gap-1">
+                  {/* Context - Bottom/Right Side */}
+                  <div className="flex-1 text-center lg:text-left">
+                    <h4 className="text-white font-bold text-sm mb-2">Practice Session</h4>
+                    <p className="text-gray-300 text-xs mb-3">Record your speech and get real-time pace analysis with WPM tracking and pause detection</p>
+                    
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
                         <FaTachometerAlt className="text-[#00d4aa]" />
-                        WPM
-                      </span>
-                      <span className="flex items-center gap-1">
+                        <span>WPM Tracking</span>
+                      </div>
+                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
                         <FaPause className="text-[#00d4aa]" />
-                        Pauses
-                      </span>
+                        <span>Pause Analysis</span>
+                      </div>
+                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                        <FaChartLine className="text-[#00d4aa]" />
+                        <span>Rhythm Control</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-[#00d4aa] font-medium">
+                      <span>Start Recording</span>
+                      <FaPlay className="text-xs" />
                     </div>
                   </div>
                 </div>
@@ -347,10 +357,10 @@ const PaceManagementHome = () => {
                 to="/pace-gamification"
                 className="group bg-gradient-to-br from-yellow-500/20 to-orange-500/20 hover:from-yellow-500/30 hover:to-orange-500/30 rounded-xl p-4 border-2 border-yellow-500/30 hover:border-yellow-500/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
-                <div className="flex items-center gap-4">
-                  {/* Gamification Image - Left Side */}
+                <div className="flex flex-col lg:flex-row items-center gap-4">
+                  {/* Gamification Image - Top/Left Side */}
                   <motion.div
-                    className="w-40 h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
+                    className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.3 }}
                   >
@@ -361,53 +371,69 @@ const PaceManagementHome = () => {
                     />
                   </motion.div>
                   
-                  {/* Context - Right Side */}
-                  <div className="flex-1">
-                    <h4 className="text-white font-bold text-sm mb-1">Gamification</h4>
-                    <p className="text-gray-300 text-xs mb-2">Earn badges & compete</p>
-                    <div className="flex gap-3 text-xs text-gray-400">
-                      <span className="flex items-center gap-1">
+                  {/* Context - Bottom/Right Side */}
+                  <div className="flex-1 text-center lg:text-left">
+                    <h4 className="text-white font-bold text-sm mb-2">Gamification</h4>
+                    <p className="text-gray-300 text-xs mb-3">Earn badges, compete with others, and track your progress through engaging challenges</p>
+                    
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
                         <FaBullseye className="text-yellow-400" />
-                        Badges
-                      </span>
-                      <span className="flex items-center gap-1">
+                        <span>Achievement Badges</span>
+                      </div>
+                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
                         <FaRocket className="text-yellow-400" />
-                        Leaderboard
-                      </span>
+                        <span>Leaderboard</span>
+                      </div>
+                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                        <FaTrophy className="text-yellow-400" />
+                        <span>Daily Challenges</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-yellow-400 font-medium">
+                      <span>View Progress</span>
+                      <FaRocket className="text-xs" />
                     </div>
                   </div>
                 </div>
               </Link>
             </motion.div>
 
-            {/* Benefits Section */}
+            {/* Video and Benefits Section - Side by Side */}
             <motion.div
-              className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-2xl p-6 border border-white/20"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 1.2 }}
             >
-              <h3 className="text-[#00ccff] font-bold text-lg mb-4">Key Benefits</h3>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <FaCheckCircle className="text-green-400 text-sm mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-white text-xs font-medium">Deliver smoother presentations</p>
-                    <p className="text-gray-400 text-xs">Consistent pace and flow</p>
+              {/* Video Section */}
+              <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-2xl p-4 border border-white/20">
+                <h3 className="text-[#00ccff] font-bold text-lg mb-3">How It Works</h3>
+                <div className="bg-gray-800/50 rounded-xl p-6 border-2 border-dashed border-gray-600 flex flex-col items-center justify-center min-h-[180px]">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#00d4aa] to-[#00b894] rounded-full flex items-center justify-center mb-3">
+                    <FaPlay className="text-white text-lg ml-1" />
                   </div>
+                  <p className="text-gray-400 text-sm text-center">Video demonstration coming soon</p>
+                  <p className="text-gray-500 text-xs text-center mt-1">Learn how our AI analyzes speech pace in real-time</p>
                 </div>
-                <div className="flex items-start gap-3">
-                  <FaCheckCircle className="text-green-400 text-sm mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-white text-xs font-medium">Keep audience engaged</p>
-                    <p className="text-gray-400 text-xs">Optimal pacing for focus</p>
+              </div>
+
+              {/* Compact Benefits Section */}
+              <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-2xl p-4 border border-white/20">
+                <h3 className="text-[#00ccff] font-bold text-lg mb-3">Key Benefits</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <FaCheckCircle className="text-green-400 text-xs flex-shrink-0" />
+                    <p className="text-white text-xs">Deliver smoother presentations with consistent pace</p>
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <FaCheckCircle className="text-green-400 text-sm mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-white text-xs font-medium">Build speaking confidence</p>
-                    <p className="text-gray-400 text-xs">Master pace control</p>
+                  <div className="flex items-center gap-2">
+                    <FaCheckCircle className="text-green-400 text-xs flex-shrink-0" />
+                    <p className="text-white text-xs">Keep audience engaged with optimal pacing</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FaCheckCircle className="text-green-400 text-xs flex-shrink-0" />
+                    <p className="text-white text-xs">Build speaking confidence & master pace control</p>
                   </div>
                 </div>
               </div>
