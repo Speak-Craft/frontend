@@ -10,6 +10,7 @@ import EmotionAnalysis from "./components/EmotionAnalysis";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import FillerWordsDetectionHome from "./components/FillerWordsDetectionHome";
 
 const App = () => {
   return (
@@ -38,6 +39,7 @@ const App = () => {
                     <Route path="present" element={<Present />} />
                     <Route path="pace-management-landing" element={<PaceManagementHome />} />
                     <Route path="pace-management" element={<PaceManagement />} />
+                    <Route path="filler-words-landing" element={<FillerWordsDetectionHome />} />
                     <Route path="filler-words-detection" element={<FillerWords />} />
                     <Route path="loudness" element={<Loudness />} />
                     <Route path="emotion-analysis" element={<EmotionAnalysis />} />
