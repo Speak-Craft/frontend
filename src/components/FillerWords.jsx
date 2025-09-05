@@ -66,7 +66,7 @@ const FillerWords = () => {
   const fetchSavedRecordings = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/rec/save", {
+      const res = await axios.get("http://localhost:3001/api/rec/save", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSavedRecs(res.data);
@@ -208,7 +208,7 @@ const FillerWords = () => {
       setIsLoading(true);
       const token = localStorage.getItem("token");
 
-      const res = await axios.post("http://localhost:5000/api/recording/upload", formData, {
+      const res = await axios.post("http://localhost:3001/api/recording/upload", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -230,7 +230,7 @@ const FillerWords = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "http://localhost:5000/api/rec/save",
+        "http://localhost:3001/api/rec/save",
         {
           fillerCount: result.fillerCount,
           duration: audioDuration,
