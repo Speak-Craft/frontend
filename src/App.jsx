@@ -8,10 +8,12 @@ import FillerWords from "./components/FillerWords";
 import Loudness from "./components/Loudness";
 import EmotionAnalysis from "./components/EmotionAnalysis";
 import Login from "./components/Login";
+import Register from "./components/Register";
 import Dashboard from "./components/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import FillerWordsDetectionHome from "./components/FillerWordsDetectionHome";
 import LoudnessVariationLanding from "./components/LoudnessVariationLanding";
+import LoudnessActivities from "./components/LoudnessActivities";
 
 const App = () => {
   return (
@@ -19,6 +21,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <div className="flex">
@@ -43,7 +46,8 @@ const App = () => {
                     <Route path="filler-words-landing" element={<FillerWordsDetectionHome />} />
                     <Route path="filler-words-detection" element={<FillerWords />} />
                     <Route path="loudness-variation-landing" element={<LoudnessVariationLanding />} />
-                    <Route path="loudness" element={<Loudness />} />
+                    <Route path="loudness-practice" element={<Loudness />} />
+                    <Route path="loudness-activities" element={<LoudnessActivities />} />
                     <Route path="emotion-analysis" element={<EmotionAnalysis />} />
                   </Routes>
                 </div>
