@@ -310,10 +310,10 @@ const PaceManagementHome = () => {
                 to="/pace-management"
                 className="group bg-gradient-to-br from-[#00d4aa]/20 to-[#00b894]/20 hover:from-[#00d4aa]/30 hover:to-[#00b894]/30 rounded-xl p-4 border-2 border-[#00d4aa]/30 hover:border-[#00d4aa]/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
-                <div className="flex flex-col lg:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
                   {/* Practice Image - Top/Left Side */}
                   <motion.div
-                    className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
+                    className="w-full sm:w-32 sm:h-32 lg:w-40 lg:h-40 h-48 sm:h-32 lg:h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.3 }}
                   >
@@ -325,26 +325,26 @@ const PaceManagementHome = () => {
                   </motion.div>
                   
                   {/* Context - Bottom/Right Side */}
-                  <div className="flex-1 text-center lg:text-left">
+                  <div className="flex-1 text-center sm:text-left w-full sm:w-auto">
                     <h4 className="text-white font-bold text-sm mb-2">Practice Session</h4>
                     <p className="text-gray-300 text-xs mb-3">Record your speech and get real-time pace analysis with WPM tracking and pause detection</p>
                     
                     <div className="space-y-2 mb-3">
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaTachometerAlt className="text-[#00d4aa]" />
                         <span>WPM Tracking</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaPause className="text-[#00d4aa]" />
                         <span>Pause Analysis</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaChartLine className="text-[#00d4aa]" />
                         <span>Rhythm Control</span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-[#00d4aa] font-medium">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-[#00d4aa] font-medium">
                       <span>Start Recording</span>
                       <FaPlay className="text-xs" />
                     </div>
@@ -357,10 +357,10 @@ const PaceManagementHome = () => {
                 to="/pace-gamification"
                 className="group bg-gradient-to-br from-yellow-500/20 to-orange-500/20 hover:from-yellow-500/30 hover:to-orange-500/30 rounded-xl p-4 border-2 border-yellow-500/30 hover:border-yellow-500/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
-                <div className="flex flex-col lg:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
                   {/* Gamification Image - Top/Left Side */}
                   <motion.div
-                    className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
+                    className="w-full sm:w-32 sm:h-32 lg:w-40 lg:h-40 h-48 sm:h-32 lg:h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.3 }}
                   >
@@ -372,26 +372,26 @@ const PaceManagementHome = () => {
                   </motion.div>
                   
                   {/* Context - Bottom/Right Side */}
-                  <div className="flex-1 text-center lg:text-left">
+                  <div className="flex-1 text-center sm:text-left w-full sm:w-auto">
                     <h4 className="text-white font-bold text-sm mb-2">Training Activities</h4>
                     <p className="text-gray-300 text-xs mb-3">Earn badges, compete with others, and track your progress through engaging challenges</p>
                     
                     <div className="space-y-2 mb-3">
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaBullseye className="text-yellow-400" />
                         <span>Achievement Badges</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaRocket className="text-yellow-400" />
                         <span>Leaderboard</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaTrophy className="text-yellow-400" />
                         <span>Daily Challenges</span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-yellow-400 font-medium">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-yellow-400 font-medium">
                       <span>View Progress</span>
                       <FaRocket className="text-xs" />
                     </div>
