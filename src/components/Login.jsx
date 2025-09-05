@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import logo from "../assets/images/logo.png";
 import titleIcon from "../assets/images/titleIcon.png";
 import { login } from "../utils/auth";
@@ -279,9 +280,9 @@ const Login = () => {
             <div className="mt-8 text-center">
               <p className="text-gray-300">
                 Don't have an account?{" "}
-                <a href="#" className="text-[#00d4aa] hover:text-[#00b894] font-semibold transition-colors hover:underline">
+                <Link to="/register" className="text-[#00d4aa] hover:text-[#00b894] font-semibold transition-colors hover:underline">
                   Sign up
-                </a>
+                </Link>
               </p>
             </div>
 
