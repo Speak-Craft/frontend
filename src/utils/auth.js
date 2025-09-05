@@ -27,15 +27,37 @@ export const login = async (email, password) => {
   }
 };
 
+// Fetch available roles for registration
+export const fetchRoles = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/roles`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch roles');
+    }
+
+    return data.roles;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Register function
-export const register = async (name, email, password) => {
+export const register = async (name, email, password, role) => {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, role }),
     });
 
     const data = await response.json();

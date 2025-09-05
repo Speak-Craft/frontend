@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import logo from "../assets/images/logo.png";
 import titleIcon from "../assets/images/titleIcon.png";
-import { register } from "../utils/auth";
+import { register, fetchRoles } from "../utils/auth";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -10,16 +10,36 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "",
   });
 
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [roles, setRoles] = useState([]);
+  const [loadingRoles, setLoadingRoles] = useState(true);
 
   useEffect(() => {
     setIsVisible(true);
+    loadRoles();
   }, []);
+
+  const loadRoles = async () => {
+    try {
+      const rolesData = await fetchRoles();
+      setRoles(rolesData);
+      // Set default role to the first available role
+      if (rolesData.length > 0) {
+        setFormData(prev => ({ ...prev, role: rolesData[0].name }));
+      }
+    } catch (err) {
+      console.error("Failed to load roles:", err);
+      setError("Failed to load available roles. Please refresh the page.");
+    } finally {
+      setLoadingRoles(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -39,6 +59,10 @@ const Register = () => {
       setError("Password must be at least 6 characters long");
       return false;
     }
+    if (!formData.role) {
+      setError("Please select a role");
+      return false;
+    }
     return true;
   };
 
@@ -54,7 +78,7 @@ const Register = () => {
     }
 
     try {
-      const data = await register(formData.name, formData.email, formData.password);
+      const data = await register(formData.name, formData.email, formData.password, formData.role);
       
       setSuccess("Registration successful! Redirecting to dashboard...");
       
@@ -268,6 +292,43 @@ const Register = () => {
                   />
                   <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#00d4aa]/0 to-[#00d4aa]/0 group-focus-within:from-[#00d4aa]/10 group-focus-within:to-[#00d4aa]/5 transition-all duration-300 pointer-events-none"></div>
                 </div>
+              </div>
+
+              <div className="group">
+                <label className="block text-sm font-semibold text-white mb-2 group-focus-within:text-[#00d4aa] transition-colors duration-300">
+                  Role
+                </label>
+                <div className="relative">
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    required
+                    disabled={isLoading || loadingRoles}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00d4aa] focus:border-transparent transition-all duration-300 group-hover:border-[#00d4aa]/50 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                  >
+                    {loadingRoles ? (
+                      <option value="">Loading roles...</option>
+                    ) : (
+                      roles.map((role) => (
+                        <option key={role._id} value={role.name} className="bg-gray-800 text-white">
+                          {role.displayName}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#00d4aa]/0 to-[#00d4aa]/0 group-focus-within:from-[#00d4aa]/10 group-focus-within:to-[#00d4aa]/5 transition-all duration-300 pointer-events-none"></div>
+                </div>
+                {roles.length > 0 && formData.role && (
+                  <p className="text-xs text-gray-300 mt-1">
+                    {roles.find(r => r.name === formData.role)?.description}
+                  </p>
+                )}
               </div>
 
               <div className="group">
