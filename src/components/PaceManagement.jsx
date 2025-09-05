@@ -53,7 +53,28 @@ const PaceManagement = () => {
     pauseTimeline: [],
     pauseDistribution: [],
     advancedMetrics: {},
-    pauseAnalysis: {},
+    pauseAnalysis: {
+      prediction: "",
+      confidence: 0,
+      probabilities: {},
+      suggestions: [],
+      shortPauses: 0,
+      mediumPauses: 0,
+      longPauses: 0,
+      excessivePauses: 0,
+      totalPauseTime: 0,
+      pauseRatio: 0,
+      averagePauseLength: 0,
+      pauseStd: 0,
+      pauseMax: 0,
+      pauseMin: 0,
+      pauseP90: 0,
+      pauseP95: 0,
+      maxLongStreak: 0,
+      pauseEfficiency: 0,
+      pausePatternRegularity: 0,
+      pauseSpacingConsistency: 0
+    },
     voiceQuality: {},
     suggestions: [],
     structuredSuggestions: {},
@@ -214,39 +235,73 @@ const PaceManagement = () => {
     formData.append("file", blob, "speech.wav");
 
     try {
-      const response = await fetch("http://localhost:8000/analyze/", {
-        method: "POST",
-        body: formData,
-      });
+      // Call both rate and pause analysis endpoints
+      const [rateResponse, pauseResponse] = await Promise.all([
+        // Rate analysis - UPDATE THIS URL TO MATCH YOUR RATE MODEL
+        fetch("http://localhost:3001/api/rate-analysis/", {
+          method: "POST",
+          body: formData,
+        }).catch(err => {
+          console.warn("Rate analysis not available:", err);
+          return { json: () => Promise.resolve({}) };
+        }),
+        
+        // Pause analysis
+        fetch("http://localhost:3001/api/pause-analysis/", {
+          method: "POST",
+          body: formData,
+        })
+      ]);
 
-      const data = await response.json();
-      const pacingCurve = data.pacingCurve || [];
-      const idealLines = data.idealLines || [];
-      const mergedCurve = pacingCurve.map((point, index) => ({
-        ...point,
-        upper: idealLines[index]?.upper || 150,
-        lower: idealLines[index]?.lower || 100,
-      }));
+      const [rateData, pauseData] = await Promise.all([
+        rateResponse.json(),
+        pauseResponse.json()
+      ]);
 
-      if (data.error) {
-        console.error("Backend error:", data.error);
+      if (pauseData.error) {
+        console.error("Pause analysis error:", pauseData.error);
       } else {
+        // Combine rate and pause analysis results
         setResults({
-          wordCount: data.wordCount || 0,
-          duration: data.duration || 0,
-          wpm: data.wpm || 0,
-          prediction: data.prediction || "Analyzing...",
-          consistencyScore: data.consistencyScore || 0,
-          feedback: data.feedback || "Analysis in progress...",
-          pacingCurve: data.pacingCurve || [],
-          pauseTimeline: data.pauseTimeline || [],
-          pauseDistribution: data.pauseDistribution || [],
-          advancedMetrics: data.advancedMetrics || {},
-          pauseAnalysis: data.pauseAnalysis || {},
-          voiceQuality: data.voiceQuality || {},
-          suggestions: data.suggestions || [],
-          structuredSuggestions: data.structuredSuggestions || {},
-          enhancedFeedback: data.enhancedFeedback || {},
+          // Rate analysis results (from your rate model)
+          wordCount: rateData.wordCount || 0,
+          duration: rateData.duration || 0,
+          wpm: rateData.wpm || 0,
+          consistencyScore: rateData.consistencyScore || 0,
+          pacingCurve: rateData.pacingCurve || [],
+          voiceQuality: rateData.voiceQuality || {},
+          
+          // Pause analysis results (from pause model)
+          prediction: pauseData.pauseAnalysis?.prediction || "Analyzing...",
+          feedback: pauseData.pauseAnalysis?.suggestions?.[0] || "Analysis in progress...",
+          pauseTimeline: pauseData.pauseTimeline || [],
+          pauseDistribution: pauseData.pauseDistribution || [],
+          advancedMetrics: pauseData.advancedMetrics || {},
+          pauseAnalysis: {
+            prediction: pauseData.pauseAnalysis?.prediction || "Unknown",
+            confidence: pauseData.pauseAnalysis?.confidence || 0,
+            probabilities: pauseData.pauseAnalysis?.probabilities || {},
+            suggestions: pauseData.pauseAnalysis?.suggestions || [],
+            shortPauses: pauseData.pauseAnalysis?.shortPauses || 0,
+            mediumPauses: pauseData.pauseAnalysis?.mediumPauses || 0,
+            longPauses: pauseData.pauseAnalysis?.longPauses || 0,
+            excessivePauses: pauseData.pauseAnalysis?.excessivePauses || 0,
+            totalPauseTime: pauseData.pauseAnalysis?.totalPauseTime || 0,
+            pauseRatio: pauseData.pauseAnalysis?.pauseRatio || 0,
+            averagePauseLength: pauseData.pauseAnalysis?.averagePauseLength || 0,
+            pauseStd: pauseData.pauseAnalysis?.pauseStd || 0,
+            pauseMax: pauseData.pauseAnalysis?.pauseMax || 0,
+            pauseMin: pauseData.pauseAnalysis?.pauseMin || 0,
+            pauseP90: pauseData.pauseAnalysis?.pauseP90 || 0,
+            pauseP95: pauseData.pauseAnalysis?.pauseP95 || 0,
+            maxLongStreak: pauseData.pauseAnalysis?.maxLongStreak || 0,
+            pauseEfficiency: pauseData.pauseAnalysis?.pauseEfficiency || 0,
+            pausePatternRegularity: pauseData.pauseAnalysis?.pausePatternRegularity || 0,
+            pauseSpacingConsistency: pauseData.pauseAnalysis?.pauseSpacingConsistency || 0
+          },
+          suggestions: pauseData.suggestions || [],
+          structuredSuggestions: pauseData.structuredSuggestions || {},
+          enhancedFeedback: rateData.enhancedFeedback || {},
         });
       }
     } catch (err) {
@@ -956,6 +1011,45 @@ const PaceManagement = () => {
                   Pause Analysis & Timing
                 </h2>
 
+                {/* AI Model Prediction Section */}
+                <div className="mb-6 p-4 bg-gradient-to-r from-[#00171f] to-[#003b46] rounded-lg border-2 border-[#00ccff]/40">
+                  <h3 className="text-[#00ccff] text-lg font-semibold mb-3">🤖 AI Pause Analysis</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="text-white text-2xl font-bold mb-1">
+                        {results.pauseAnalysis.prediction?.replace(/_/g, ' ').toUpperCase() || "ANALYZING"}
+                      </div>
+                      <div className="text-white/70 text-sm">AI Prediction</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[#00ccff] text-2xl font-bold mb-1">
+                        {(results.pauseAnalysis.confidence * 100).toFixed(1)}%
+                      </div>
+                      <div className="text-white/70 text-sm">Confidence</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-green-400 text-lg font-bold mb-1">
+                        {results.pauseAnalysis.suggestions?.length || 0}
+                      </div>
+                      <div className="text-white/70 text-sm">Suggestions</div>
+                    </div>
+                  </div>
+                  
+                  {/* Top AI Suggestions */}
+                  {results.pauseAnalysis.suggestions && results.pauseAnalysis.suggestions.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-white font-semibold mb-2">💡 AI Recommendations:</h4>
+                      <div className="space-y-2">
+                        {results.pauseAnalysis.suggestions.slice(0, 3).map((suggestion, index) => (
+                          <div key={index} className="text-white/90 text-sm bg-white/10 rounded-lg p-2">
+                            {suggestion}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Critical Pause Metrics Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6 mb-6">
                   <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
@@ -1131,6 +1225,33 @@ const PaceManagement = () => {
                 <h2 className="text-xl lg:text-2xl font-bold text-white mt-2 mb-4">
                   AI-Powered Insights
                 </h2>
+
+                {/* AI Model Probabilities */}
+                {results.pauseAnalysis.probabilities && Object.keys(results.pauseAnalysis.probabilities).length > 0 && (
+                  <div className="mb-6 p-4 bg-gradient-to-r from-[#00171f] to-[#003b46] rounded-lg border-2 border-[#00ccff]/40">
+                    <h3 className="text-[#00ccff] text-lg font-semibold mb-3">🎯 AI Model Probabilities</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {Object.entries(results.pauseAnalysis.probabilities).map(([label, probability]) => (
+                        <div key={label} className="bg-white/10 rounded-lg p-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-white text-sm font-medium">
+                              {label.replace(/_/g, ' ').toUpperCase()}
+                            </span>
+                            <span className="text-[#00ccff] text-sm font-bold">
+                              {(probability * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-white/20 rounded-full h-2">
+                            <div
+                              className="h-2 rounded-full bg-gradient-to-r from-[#00ccff] to-[#0099cc]"
+                              style={{ width: `${probability * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Toastmasters Compliance & Advanced Metrics */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
