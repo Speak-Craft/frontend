@@ -334,13 +334,13 @@ const LoudnessVariationLanding = () => {
             >
               {/* Main Practice Card */}
               <Link
-                to="/loudness"
+                to="/loudness-practice"
                 className="group bg-gradient-to-br from-[#f59e0b]/20 to-[#d97706]/20 hover:from-[#f59e0b]/30 hover:to-[#d97706]/30 rounded-xl p-4 border-2 border-[#f59e0b]/30 hover:border-[#f59e0b]/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
-                <div className="flex flex-col lg:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
                   {/* Practice Image - Top/Left Side */}
                   <motion.div
-                    className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
+                    className="w-full sm:w-32 sm:h-32 lg:w-40 lg:h-40 h-48 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.3 }}
                   >
@@ -352,26 +352,26 @@ const LoudnessVariationLanding = () => {
                   </motion.div>
                   
                   {/* Context - Bottom/Right Side */}
-                  <div className="flex-1 text-center lg:text-left">
+                  <div className="flex-1 text-center sm:text-left w-full sm:w-auto">
                     <h4 className="text-white font-bold text-sm mb-2">Practice Session</h4>
                     <p className="text-gray-300 text-xs mb-3">Record your speech and get real-time loudness analysis with volume variation feedback</p>
                     
                     <div className="space-y-2 mb-3">
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaSlidersH className="text-[#f59e0b]" />
                         <span>RMS Energy Analysis</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaMicrophone className="text-[#f59e0b]" />
                         <span>Monotone Detection</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaSlidersH className="text-[#f59e0b]" />
                         <span>Volume Control</span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-[#f59e0b] font-medium">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-[#f59e0b] font-medium">
                       <span>Start Recording</span>
                       <FaPlay className="text-xs" />
                     </div>
@@ -381,13 +381,13 @@ const LoudnessVariationLanding = () => {
               
               {/* Training Activities Card */}
               <Link
-                to="/loudness-training"
+                to="/loudness-activities"
                 className="group bg-gradient-to-br from-yellow-500/20 to-orange-500/20 hover:from-yellow-500/30 hover:to-orange-500/30 rounded-xl p-4 border-2 border-yellow-500/30 hover:border-yellow-500/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
-                <div className="flex flex-col lg:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
                   {/* Training Image - Top/Left Side */}
                   <motion.div
-                    className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
+                    className="w-full sm:w-32 sm:h-32 lg:w-40 lg:h-40 h-48 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.3 }}
                   >
@@ -399,26 +399,26 @@ const LoudnessVariationLanding = () => {
                   </motion.div>
                   
                   {/* Context - Bottom/Right Side */}
-                  <div className="flex-1 text-center lg:text-left">
+                  <div className="flex-1 text-center sm:text-left w-full sm:w-auto">
                     <h4 className="text-white font-bold text-sm mb-2">Training Activities</h4>
                     <p className="text-gray-300 text-xs mb-3">Engage in structured exercises and challenges to master vocal dynamics and loudness control</p>
                     
                     <div className="space-y-2 mb-3">
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaGamepad className="text-yellow-400" />
                         <span>Interactive Exercises</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaTrophy className="text-yellow-400" />
                         <span>Daily Challenges</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaMedal className="text-yellow-400" />
                         <span>Achievement Badges</span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-yellow-400 font-medium">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-yellow-400 font-medium">
                       <span>Start Training</span>
                       <FaRocket className="text-xs" />
                     </div>
