@@ -336,10 +336,10 @@ const FillerWordsDetectionHome = () => {
                 to="/filler-words-detection"
                 className="group bg-gradient-to-br from-[#ff6b6b]/20 to-[#ee5a52]/20 hover:from-[#ff6b6b]/30 hover:to-[#ee5a52]/30 rounded-xl p-4 border-2 border-[#ff6b6b]/30 hover:border-[#ff6b6b]/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
-                <div className="flex flex-col lg:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
                   {/* Practice Image - Top/Left Side */}
                   <motion.div
-                    className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
+                    className="w-full sm:w-32 sm:h-32 lg:w-40 lg:h-40 h-48 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.3 }}
                   >
@@ -351,26 +351,26 @@ const FillerWordsDetectionHome = () => {
                   </motion.div>
                   
                   {/* Context - Bottom/Right Side */}
-                  <div className="flex-1 text-center lg:text-left">
+                  <div className="flex-1 text-center sm:text-left w-full sm:w-auto">
                     <h4 className="text-white font-bold text-sm mb-2">Practice Session</h4>
                     <p className="text-gray-300 text-xs mb-3">Record your speech and get real-time filler word detection with AI-powered analysis</p>
                     
                     <div className="space-y-2 mb-3">
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaMicrophone className="text-[#ff6b6b]" />
                         <span>Real-time Detection</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaBrain className="text-[#ff6b6b]" />
                         <span>AI Analysis</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaChartBar className="text-[#ff6b6b]" />
                         <span>Progress Tracking</span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-[#ff6b6b] font-medium">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-[#ff6b6b] font-medium">
                       <span>Start Recording</span>
                       <FaPlay className="text-xs" />
                     </div>
@@ -383,10 +383,10 @@ const FillerWordsDetectionHome = () => {
                 to="/filler-words-activities"
                 className="group bg-gradient-to-br from-orange-500/20 to-yellow-500/20 hover:from-orange-500/30 hover:to-yellow-500/30 rounded-xl p-4 border-2 border-orange-500/30 hover:border-orange-500/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
-                <div className="flex flex-col lg:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
                   {/* Activity Image - Top/Left Side */}
                   <motion.div
-                    className="w-32 h-32 lg:w-40 lg:h-40 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
+                    className="w-full sm:w-32 sm:h-32 lg:w-40 lg:h-40 h-48 rounded-xl overflow-hidden shadow-lg flex-shrink-0"
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.3 }}
                   >
@@ -398,26 +398,26 @@ const FillerWordsDetectionHome = () => {
                   </motion.div>
                   
                   {/* Context - Bottom/Right Side */}
-                  <div className="flex-1 text-center lg:text-left">
+                  <div className="flex-1 text-center sm:text-left w-full sm:w-auto">
                     <h4 className="text-white font-bold text-sm mb-2">Training Activities</h4>
                     <p className="text-gray-300 text-xs mb-3">Engage in interactive exercises, drills, and challenges to master filler word elimination</p>
                     
                     <div className="space-y-2 mb-3">
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaGamepad className="text-orange-400" />
                         <span>Interactive Exercises</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaTrophy className="text-orange-400" />
                         <span>Daily Challenges</span>
                       </div>
-                      <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaMedal className="text-orange-400" />
                         <span>Achievement Badges</span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-center lg:justify-start gap-2 text-xs text-orange-400 font-medium">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-orange-400 font-medium">
                       <span>Start Training</span>
                       <FaRocket className="text-xs" />
                     </div>
