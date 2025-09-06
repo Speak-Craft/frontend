@@ -1,8 +1,8 @@
-FillerWordsimport { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { AudioRecorder } from "react-audio-voice-recorder";
 
-export default function FillerWords() {
+export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("record"); // record | saved
   const [audioBlob, setAudioBlob] = useState(null);
   const [result, setResult] = useState(null);

@@ -488,14 +488,14 @@ const Loudness = () => {
                 />
               </div>
 
-            
-
               {/* Buttons */}
               <div
-                className="mb-4"
+                className="mt-10"
                 style={{
                   display: "flex",
                   justifyContent: "center",
+                  marginTop: "4rem",
+                  marginBottom: "1rem",
                   gap: "1rem",
                   flexWrap: "wrap",
                 }}
