@@ -2,22 +2,44 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import logo from "../assets/images/logo.png";
 import titleIcon from "../assets/images/titleIcon.png";
-import { login } from "../utils/auth";
+import { register, fetchRoles } from "../utils/auth";
 
-const Login = () => {
+const Register = () => {
   const [formData, setFormData] = useState({
+    name: "",
     email: "",
     password: "",
+    confirmPassword: "",
+    role: "",
   });
 
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [roles, setRoles] = useState([]);
+  const [loadingRoles, setLoadingRoles] = useState(true);
 
   useEffect(() => {
     setIsVisible(true);
+    loadRoles();
   }, []);
+
+  const loadRoles = async () => {
+    try {
+      const rolesData = await fetchRoles();
+      setRoles(rolesData);
+      // Set default role to the first available role
+      if (rolesData.length > 0) {
+        setFormData(prev => ({ ...prev, role: rolesData[0].name }));
+      }
+    } catch (err) {
+      console.error("Failed to load roles:", err);
+      setError("Failed to load available roles. Please refresh the page.");
+    } finally {
+      setLoadingRoles(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -28,21 +50,46 @@ const Login = () => {
     if (error) setError("");
   };
 
+  const validateForm = () => {
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return false;
+    }
+    if (!formData.role) {
+      setError("Please select a role");
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
     setSuccess("");
 
+    if (!validateForm()) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const data = await login(formData.email, formData.password);
+      const data = await register(formData.name, formData.email, formData.password, formData.role);
       
-      setSuccess("Login successful! Redirecting...");
+      setSuccess("Registration successful! Redirecting to dashboard...");
       
-      // Redirect to dashboard after successful login
+      // Store token and user data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Redirect to dashboard after successful registration
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 1500);
+      }, 2000);
 
     } catch (err) {
       setError(err.message);
@@ -51,12 +98,12 @@ const Login = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    setError("Google login not implemented yet");
+  const handleGoogleRegister = () => {
+    setError("Google registration not implemented yet");
   };
 
-  const handleTwitterLogin = () => {
-    setError("Twitter login not implemented yet");
+  const handleTwitterRegister = () => {
+    setError("Twitter registration not implemented yet");
   };
 
   return (
@@ -97,19 +144,18 @@ const Login = () => {
                 className="w-120 h-40 mb-1 relative z-10 transform group-hover:scale-110 transition-all duration-500 drop-shadow-2xl"
               />
             </div>
-           
           </div>
           
           {/* Animated Tagline - Wider and Better Spaced */}
           <div className={`max-w-2xl mb-10 transform transition-all duration-1000 delay-300 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <h2 className="text-5xl font-bold mb-8 text-white leading-tight">
-              Master Your 
+              Start Your 
               <span className="block text-[#00d4aa] bg-gradient-to-r from-[#00d4aa] to-[#00b894] bg-clip-text text-transparent">
-                Presentation Skills
+                Speaking Journey
               </span>
             </h2>
             <p className="text-2xl text-gray-200 leading-relaxed">
-              AI-powered training to transform your public speaking abilities and boost your confidence on stage.
+              Join thousands of professionals who have transformed their presentation skills with AI-powered training.
             </p>
           </div>
           
@@ -119,12 +165,12 @@ const Login = () => {
             <div className="flex flex-col items-center space-y-4 group hover:bg-white/5 p-6 rounded-2xl transition-all duration-300">
               <div className="w-20 h-20 bg-gradient-to-br from-[#00d4aa] to-[#00b894] rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
               <div className="text-center">
-                <h3 className="font-bold text-white text-xl mb-3">AI-Powered Analysis</h3>
-                <p className="text-gray-300 text-sm leading-relaxed">Advanced speech recognition and real-time feedback</p>
+                <h3 className="font-bold text-white text-xl mb-3">Personalized Profile</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">Create your unique speaking profile and track progress</p>
               </div>
             </div>
 
@@ -132,12 +178,12 @@ const Login = () => {
             <div className="flex flex-col items-center space-y-4 group hover:bg-white/5 p-6 rounded-2xl transition-all duration-300">
               <div className="w-20 h-20 bg-gradient-to-br from-[#00d4aa] to-[#00b894] rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
               <div className="text-center">
-                <h3 className="font-bold text-white text-xl mb-3">Real-Time Coaching</h3>
-                <p className="text-gray-300 text-sm leading-relaxed">Instant feedback and personalized improvement tips</p>
+                <h3 className="font-bold text-white text-xl mb-3">Instant Access</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">Start improving your skills immediately after registration</p>
               </div>
             </div>
 
@@ -145,12 +191,12 @@ const Login = () => {
             <div className="flex flex-col items-center space-y-4 group hover:bg-white/5 p-6 rounded-2xl transition-all duration-300">
               <div className="w-20 h-20 bg-gradient-to-br from-[#00d4aa] to-[#00b894] rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
               <div className="text-center">
-                <h3 className="font-bold text-white text-xl mb-3">Personalized Training</h3>
-                <p className="text-gray-300 text-sm leading-relaxed">Custom training plans tailored to your skill level</p>
+                <h3 className="font-bold text-white text-xl mb-3">Community Access</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">Join our community of confident speakers</p>
               </div>
             </div>
           </div>
@@ -158,22 +204,22 @@ const Login = () => {
           {/* Animated Stats - Wider Layout */}
           <div className={`grid grid-cols-3 gap-12 transform transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <div className="text-center group">
-              <div className="text-4xl font-bold text-[#00d4aa] mb-3 group-hover:scale-110 transition-transform duration-300">10K+</div>
-              <div className="text-gray-300 text-base">Students Trained</div>
+              <div className="text-4xl font-bold text-[#00d4aa] mb-3 group-hover:scale-110 transition-transform duration-300">15K+</div>
+              <div className="text-gray-300 text-base">Active Users</div>
             </div>
             <div className="text-center group">
-              <div className="text-4xl font-bold text-[#00d4aa] mb-3 group-hover:scale-110 transition-transform duration-300">95%</div>
-              <div className="text-gray-300 text-base">Success Rate</div>
+              <div className="text-4xl font-bold text-[#00d4aa] mb-3 group-hover:scale-110 transition-transform duration-300">98%</div>
+              <div className="text-gray-300 text-base">Satisfaction Rate</div>
             </div>
             <div className="text-center group">
-              <div className="text-4xl font-bold text-[#00d4aa] mb-3 group-hover:scale-110 transition-transform duration-300">24/7</div>
-              <div className="text-gray-300 text-base">AI Support</div>
+              <div className="text-4xl font-bold text-[#00d4aa] mb-3 group-hover:scale-110 transition-transform duration-300">Free</div>
+              <div className="text-gray-300 text-base">To Get Started</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right Side - Login Form - Adjusted Width */}
+      {/* Right Side - Registration Form - Adjusted Width */}
       <div className="w-full lg:w-2/5 flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
@@ -189,27 +235,46 @@ const Login = () => {
             </h1>
           </div>
 
-          {/* Enhanced Login Form */}
+          {/* Enhanced Registration Form */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 shadow-2xl hover:shadow-[#00d4aa]/20 transition-all duration-500">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-              <p className="text-gray-300">Sign in to continue your presentation journey</p>
+              <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
+              <p className="text-gray-300">Join SpeakCraft and start your speaking journey</p>
             </div>
 
             {/* Error and Success Messages */}
             {error && (
-              <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg text-sm mb-4">
                 {error}
               </div>
             )}
             
             {success && (
-              <div className="bg-green-500/20 border border-green-500/50 text-green-200 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-green-500/20 border border-green-500/50 text-green-200 px-4 py-3 rounded-lg text-sm mb-4">
                 {success}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="group">
+                <label className="block text-sm font-semibold text-white mb-2 group-focus-within:text-[#00d4aa] transition-colors duration-300">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter your full name"
+                    required
+                    disabled={isLoading}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] focus:border-transparent transition-all duration-300 group-hover:border-[#00d4aa]/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#00d4aa]/0 to-[#00d4aa]/0 group-focus-within:from-[#00d4aa]/10 group-focus-within:to-[#00d4aa]/5 transition-all duration-300 pointer-events-none"></div>
+                </div>
+              </div>
+
               <div className="group">
                 <label className="block text-sm font-semibold text-white mb-2 group-focus-within:text-[#00d4aa] transition-colors duration-300">
                   Email Address
@@ -231,6 +296,43 @@ const Login = () => {
 
               <div className="group">
                 <label className="block text-sm font-semibold text-white mb-2 group-focus-within:text-[#00d4aa] transition-colors duration-300">
+                  Role
+                </label>
+                <div className="relative">
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    required
+                    disabled={isLoading || loadingRoles}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#00d4aa] focus:border-transparent transition-all duration-300 group-hover:border-[#00d4aa]/50 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                  >
+                    {loadingRoles ? (
+                      <option value="">Loading roles...</option>
+                    ) : (
+                      roles.map((role) => (
+                        <option key={role._id} value={role.name} className="bg-gray-800 text-white">
+                          {role.displayName}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#00d4aa]/0 to-[#00d4aa]/0 group-focus-within:from-[#00d4aa]/10 group-focus-within:to-[#00d4aa]/5 transition-all duration-300 pointer-events-none"></div>
+                </div>
+                {roles.length > 0 && formData.role && (
+                  <p className="text-xs text-gray-300 mt-1">
+                    {roles.find(r => r.name === formData.role)?.description}
+                  </p>
+                )}
+              </div>
+
+              <div className="group">
+                <label className="block text-sm font-semibold text-white mb-2 group-focus-within:text-[#00d4aa] transition-colors duration-300">
                   Password
                 </label>
                 <div className="relative">
@@ -239,7 +341,7 @@ const Login = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="Enter your password"
+                    placeholder="Create a password"
                     required
                     disabled={isLoading}
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] focus:border-transparent transition-all duration-300 group-hover:border-[#00d4aa]/50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -248,17 +350,43 @@ const Login = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="group">
+                <label className="block text-sm font-semibold text-white mb-2 group-focus-within:text-[#00d4aa] transition-colors duration-300">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Confirm your password"
+                    required
+                    disabled={isLoading}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] focus:border-transparent transition-all duration-300 group-hover:border-[#00d4aa]/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#00d4aa]/0 to-[#00d4aa]/0 group-focus-within:from-[#00d4aa]/10 group-focus-within:to-[#00d4aa]/5 transition-all duration-300 pointer-events-none"></div>
+                </div>
+              </div>
+
+              <div className="flex items-center">
                 <label className="flex items-center group cursor-pointer">
                   <input
                     type="checkbox"
+                    required
                     className="w-4 h-4 text-[#00d4aa] bg-white/10 border-white/20 rounded focus:ring-[#00d4aa] focus:ring-2 transition-all duration-300"
                   />
-                  <span className="ml-2 text-sm text-gray-300 group-hover:text-white transition-colors">Remember me</span>
+                  <span className="ml-2 text-sm text-gray-300 group-hover:text-white transition-colors">
+                    I agree to the{" "}
+                    <a href="#" className="text-[#00d4aa] hover:text-[#00b894] transition-colors hover:underline">
+                      Terms of Service
+                    </a>{" "}
+                    and{" "}
+                    <a href="#" className="text-[#00d4aa] hover:text-[#00b894] transition-colors hover:underline">
+                      Privacy Policy
+                    </a>
+                  </span>
                 </label>
-                <a href="#" className="text-sm text-[#00d4aa] hover:text-[#00b894] transition-colors hover:underline">
-                  Forgot password?
-                </a>
               </div>
 
               <button
@@ -269,38 +397,38 @@ const Login = () => {
                 {isLoading ? (
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Signing In...
+                    Creating Account...
                   </div>
                 ) : (
-                  "Sign In"
+                  "Create Account"
                 )}
               </button>
             </form>
 
             <div className="mt-8 text-center">
               <p className="text-gray-300">
-                Don't have an account?{" "}
-                <Link to="/register" className="text-[#00d4aa] hover:text-[#00b894] font-semibold transition-colors hover:underline">
-                  Sign up
+                Already have an account?{" "}
+                <Link to="/login" className="text-[#00d4aa] hover:text-[#00b894] font-semibold transition-colors hover:underline">
+                  Sign in
                 </Link>
               </p>
             </div>
 
-            {/* Enhanced Social Login */}
+            {/* Enhanced Social Registration */}
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-white/20"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-transparent text-gray-300">Or continue with</span>
+                  <span className="px-2 bg-transparent text-gray-300">Or register with</span>
                 </div>
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <button 
                   type="button"
-                  onClick={handleGoogleLogin}
+                  onClick={handleGoogleRegister}
                   disabled={isLoading}
                   className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 dark:border-white/20 rounded-lg shadow-sm bg-gray-50 dark:bg-white/10 text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/20 hover:border-[#00d4aa]/50 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -315,7 +443,7 @@ const Login = () => {
 
                 <button 
                   type="button"
-                  onClick={handleTwitterLogin}
+                  onClick={handleTwitterRegister}
                   disabled={isLoading}
                   className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 dark:border-white/20 rounded-lg shadow-sm bg-gray-50 dark:bg-white/10 text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-white/20 hover:border-[#00d4aa]/50 focus:outline-none focus:ring-2 focus:ring-[#00d4aa] transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -333,4 +461,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;

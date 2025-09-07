@@ -1,0 +1,566 @@
+import React, { useRef, useState, useEffect } from "react";
+import axios from "axios";
+
+const Exercises = () => {
+  const [position, setPosition] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [message, setMessage] = useState("Click Start and Speak Loud!");
+  const [hasWon, setHasWon] = useState(false);
+  const [score, setScore] = useState(0);
+  const [previousScores, setPreviousScores] = useState([]);
+  const [activeTab, setActiveTab] = useState("game");
+
+  const mediaRecorderRef = useRef(null);
+  const intervalRef = useRef(null);
+  const chunksRef = useRef([]);
+
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    fetchScores();
+  }, []);
+
+  const fetchScores = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/scores", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPreviousScores(res.data);
+    } catch (err) {
+      console.error("Error fetching scores", err);
+    }
+  };
+
+  const saveScoreToDB = async (finalScore) => {
+    try {
+      await axios.post(
+        "http://localhost:5000/api/scores",
+        { score: finalScore },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchScores();
+    } catch (err) {
+      console.error("Failed to save score", err);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => chunksRef.current.push(e.data);
+
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        chunksRef.current = [];
+
+        const formData = new FormData();
+        formData.append("audio", blob, "audio.webm");
+
+        try {
+          const res = await axios.post(
+            "http://localhost:5000/api/loudness/predict",
+            formData
+          );
+          const loudnessLabel = res.data.prediction;
+
+          if (loudnessLabel === "Acceptable") {
+            setPosition((prev) => {
+              const next = Math.min(prev + 10, 100);
+              if (next === 100) {
+                setHasWon(true);
+                setMessage("🎉 You Win! Great loudness!");
+                stopGame();
+                saveScoreToDB(score + 10);
+              } else {
+                setMessage("Good job! Keep going 🔊");
+              }
+              return next;
+            });
+            setScore((prevScore) => prevScore + 10);
+          } else {
+            setMessage("Too quiet! Speak louder 🗣️");
+          }
+        } catch {
+          setMessage("Error detecting loudness.");
+        }
+
+        if (isRunning && !hasWon) {
+          mediaRecorder.start();
+          setTimeout(() => mediaRecorder.stop(), 1000);
+        }
+      };
+
+      mediaRecorder.start();
+      setTimeout(() => mediaRecorder.stop(), 1000);
+    } catch {
+      setMessage("Microphone access error");
+    }
+  };
+
+  const startGame = () => {
+    setIsRunning(true);
+    setHasWon(false);
+    setPosition(0);
+    setScore(0);
+    setMessage("Game Started! Climb by speaking loud!");
+
+    intervalRef.current = setInterval(() => {
+      startRecording();
+    }, 2000);
+  };
+
+  const stopGame = () => {
+    clearInterval(intervalRef.current);
+    setIsRunning(false);
+    if (score > 0 && !hasWon) {
+      saveScoreToDB(score);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: 500, margin: "auto", padding: 20, fontFamily: "sans-serif" }}>
+      <h2 style={{ textAlign: "center", marginBottom: 20 }}>🎮 Loudness Climb</h2>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+        <button
+          onClick={() => setActiveTab("game")}
+          style={{
+            padding: "10px 20px",
+            cursor: "pointer",
+            borderBottom: activeTab === "game" ? "2px solid black" : "none",
+            background: "none",
+            border: "none",
+            fontWeight: activeTab === "game" ? "bold" : "normal",
+          }}
+        >
+          Game
+        </button>
+        <button
+          onClick={() => setActiveTab("scores")}
+          style={{
+            padding: "10px 20px",
+            cursor: "pointer",
+            borderBottom: activeTab === "scores" ? "2px solid black" : "none",
+            background: "none",
+            border: "none",
+            fontWeight: activeTab === "scores" ? "bold" : "normal",
+          }}
+        >
+          Scores
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "game" ? (
+        <>
+          <p style={{ fontSize: 18, textAlign: "center", marginBottom: 20 }}>
+            Score: <strong>{score}</strong>
+          </p>
+
+          <div
+            style={{
+              position: "relative",
+              height: 400,
+              width: 60,
+              margin: "auto",
+              backgroundColor: "#ddd",
+              borderRadius: 30,
+              border: "3px solid #999",
+              overflow: "hidden",
+              marginBottom: 20,
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                bottom: `${position}%`,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: 40,
+                height: 40,
+                backgroundColor: "#e53e3e",
+                borderRadius: "50%",
+                transition: "bottom 0.5s ease",
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              height: 20,
+              width: "100%",
+              backgroundColor: "#ccc",
+              borderRadius: 10,
+              overflow: "hidden",
+              marginBottom: 20,
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                width: `${position}%`,
+                backgroundColor: "#48bb78",
+                transition: "width 0.5s ease",
+              }}
+            />
+          </div>
+
+          <p style={{ textAlign: "center", marginBottom: 20 }}>{message}</p>
+
+          <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
+            <button
+              onClick={startGame}
+              disabled={isRunning || hasWon}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: isRunning || hasWon ? "#aaa" : "#48bb78",
+                border: "none",
+                borderRadius: 5,
+                cursor: isRunning || hasWon ? "not-allowed" : "pointer",
+                color: "white",
+              }}
+            >
+              Start
+            </button>
+            <button
+              onClick={() => {
+                stopGame();
+                setMessage("Game stopped. Click Start to try again.");
+              }}
+              disabled={!isRunning}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: !isRunning ? "#aaa" : "#f56565",
+                border: "none",
+                borderRadius: 5,
+                cursor: !isRunning ? "not-allowed" : "pointer",
+                color: "white",
+              }}
+            >
+              Stop
+            </button>
+          </div>
+        </>
+      ) : (
+        <div>
+          <h3 style={{ textAlign: "center", marginBottom: 15 }}>Previous Scores</h3>
+          {previousScores.length === 0 ? (
+            <p style={{ textAlign: "center" }}>No scores recorded yet.</p>
+          ) : (
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                textAlign: "left",
+              }}
+            >
+              <thead>
+                <tr>
+                  <th style={{ borderBottom: "1px solid #ccc", padding: 8 }}>Date</th>
+                  <th style={{ borderBottom: "1px solid #ccc", padding: 8 }}>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {previousScores.map((s) => (
+                  <tr key={s._id}>
+                    <td style={{ padding: 8 }}>
+                      {new Date(s.date).toLocaleString()}
+                    </td>
+                    <td style={{ padding: 8 }}>{s.score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Exercises;
+
+
+
+import React, { useEffect, useRef, useState } from "react";
+import axios from "axios";
+
+const LoudnessExercise = () => {
+  const [exercise, setExercise] = useState(null);
+  const [rmsValues, setRmsValues] = useState([]);
+  const [status, setStatus] = useState("Idle");
+  const [timeElapsed, setTimeElapsed] = useState(0);
+  const [liveDuration, setLiveDuration] = useState(0);
+  const [percentage, setPercentage] = useState(0);
+
+  const analyserRef = useRef(null);
+  const dataArrayRef = useRef(null);
+  const timerRef = useRef(null);
+  const micIntervalRef = useRef(null);
+
+  // Start microphone listener
+  useEffect(() => {
+    const startMic = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+
+      analyserRef.current = audioCtx.createAnalyser();
+      analyserRef.current.fftSize = 2048;
+      const bufferLength = analyserRef.current.fftSize;
+      dataArrayRef.current = new Float32Array(bufferLength);
+
+      source.connect(analyserRef.current);
+
+      // Sample RMS every 300ms
+      micIntervalRef.current = setInterval(() => {
+        analyserRef.current.getFloatTimeDomainData(dataArrayRef.current);
+        const rms = Math.sqrt(
+          dataArrayRef.current.reduce((s, v) => s + v * v, 0) /
+            dataArrayRef.current.length
+        );
+        setRmsValues((prev) => [...prev, rms]);
+
+        // If an exercise is active, update live stats
+        if (exercise && !exercise.completed) {
+          const threshold = getThreshold(exercise.level);
+          if (rms >= threshold) {
+            setLiveDuration((d) => d + 0.3);
+          }
+        }
+      }, 300);
+    };
+
+    startMic();
+    return () => clearInterval(micIntervalRef.current);
+  }, [exercise]);
+
+  // Timer
+  useEffect(() => {
+    if (exercise && !exercise.completed) {
+      timerRef.current = setInterval(() => {
+        setTimeElapsed((t) => t + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [exercise]);
+
+  // Auto-completion detection on frontend
+  useEffect(() => {
+    if (exercise && !exercise.completed && timeElapsed > 0) {
+      const pct = (liveDuration / timeElapsed) * 100;
+      setPercentage(pct);
+
+      if (liveDuration >= 20 && pct >= 20) {
+        // Mark as completed locally
+        setExercise((prev) => ({ ...prev, completed: true }));
+        setStatus("✅ Completed!");
+        clearInterval(timerRef.current);
+      }
+    }
+  }, [liveDuration, timeElapsed, exercise]);
+
+  // Helper for thresholds
+  const getThreshold = (level) => {
+    const thresholds = { 1: 0.05, 2: 0.1, 3: 0.15 };
+    return thresholds[level] || 0.05;
+  };
+
+  const startExercise = async () => {
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/api/exercises/loudness/start",
+        {},
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+      setExercise(res.data.exercise);
+      setStatus(`Started Level ${res.data.exercise.level}`);
+      setTimeElapsed(0);
+      setLiveDuration(0);
+      setRmsValues([]);
+      setPercentage(0);
+    } catch (err) {
+      console.error("❌ startExercise error:", err.response?.data || err.message);
+      setStatus("❌ Failed to start exercise");
+    }
+  };
+
+  const stopExercise = () => {
+    // Reset current exercise (user has to restart)
+    setExercise(null);
+    setStatus("Stopped. Restart to continue.");
+    setTimeElapsed(0);
+    setLiveDuration(0);
+    setRmsValues([]);
+    setPercentage(0);
+    clearInterval(timerRef.current);
+  };
+
+  const updateProgress = async () => {
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/api/exercises/loudness/update",
+        { rmsValues },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+      setExercise(res.data);
+
+      if (res.data.completed) {
+        setStatus("✅ Completed!");
+        clearInterval(timerRef.current);
+      } else {
+        setStatus("In Progress");
+      }
+    } catch (err) {
+      console.error("❌ updateProgress error:", err.response?.data || err.message);
+      setStatus("❌ Failed to update progress");
+    }
+  };
+
+  return (
+    <div className="p-6 text-white">
+      <h2 className="text-3xl font-bold mb-4">🎤 Loudness Training</h2>
+  
+      {!exercise && (
+        <button
+          onClick={startExercise}
+          className="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-2xl shadow-md font-semibold text-lg"
+        >
+          🚀 Start Exercise
+        </button>
+      )}
+  
+      {exercise && (
+        <div className="mt-6 bg-gray-900 p-6 rounded-2xl shadow-lg">
+          {/* Exercise Info */}
+          <div className="mb-4">
+            <p className="text-lg">
+              <span className="font-semibold">Level:</span> {exercise.level}
+            </p>
+            <p className="text-lg">
+              <span className="font-semibold">Time Elapsed:</span> {timeElapsed}s
+            </p>
+            <p className="text-lg">
+              <span className="font-semibold">Above Threshold:</span>{" "}
+              {liveDuration.toFixed(1)}s
+            </p>
+          </div>
+  
+          {/* Progress Bar */}
+          <div className="mb-4">
+            <div className="flex justify-between text-sm mb-1">
+              <span>Progress</span>
+              <span>{percentage.toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-4">
+              <div
+                className={`h-4 rounded-full transition-all duration-300 ${
+                  percentage >= 100 ? "bg-green-500" : "bg-blue-500"
+                }`}
+                style={{ width: `${Math.min(percentage, 100)}%` }}
+              />
+            </div>
+          </div>
+  
+          {/* Status */}
+          <div
+            className={`text-lg font-semibold mb-4 ${
+              status.includes("✅") ? "text-green-400" : "text-yellow-400"
+            }`}
+          >
+            {status}
+          </div>
+  
+          {/* Buttons */}
+          <div className="flex space-x-4">
+            {!exercise.completed && (
+              <button
+                onClick={stopExercise}
+                className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-lg font-medium shadow-md"
+              >
+                🛑 Stop
+              </button>
+            )}
+  
+            {exercise.completed && (
+              <button
+                onClick={updateProgress}
+                className="bg-green-500 hover:bg-green-600 px-5 py-2 rounded-lg font-medium shadow-md"
+              >
+                💾 Save Progress
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+  
+};
+
+export default LoudnessExercise;
+
+import React, { useEffect, useState } from "react";
+
+const PastExercises = () => {
+  const [exercises, setExercises] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchExercises = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/exercises/my-exercises", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        if (!res.ok) {
+          throw new Error("Failed to fetch exercises");
+        }
+        const data = await res.json();
+        setExercises(data.exercises);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchExercises();
+  }, []);
+
+  if (loading) return <p>Loading exercises...</p>;
+  if (error) return <p className="text-red-600">Error: {error}</p>;
+  if (exercises.length === 0) return <p>No exercises found.</p>;
+
+  return (
+    <div className="max-w-xl mx-auto p-6 bg-white shadow-xl rounded-xl mt-6 text-black">
+      <h2 className="text-2xl font-bold mb-4">Your Past Exercises</h2>
+      {exercises.map((ex) => (
+        <div key={ex._id} className="mb-6 p-4 border border-gray-300 rounded">
+          <p>
+            <strong>Date:</strong> {new Date(ex.createdAt).toLocaleString()}
+          </p>
+          <p>
+            <strong>Duration:</strong> {ex.duration} seconds
+          </p>
+          <p>
+            <strong>Average Volume (RMS):</strong> {ex.rms}
+          </p>
+          <p>
+            <strong>Steadiness:</strong> {ex.steadiness}
+          </p>
+          <audio controls src={ex.audioURL} className="mt-2 w-full" />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default PastExercises;

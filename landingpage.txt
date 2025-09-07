@@ -1,0 +1,132 @@
+Effective communication is a cornerstone of academic and professional success, and
+the ability to deliver clear, confident, and engaging presentations has become an
+11
+essential skill for undergraduate students. In Sri Lanka, as in many other contexts,
+oral presentations are widely used as part of university assessments, research
+dissemination, and professional training. However, a recurring challenge among Sri
+Lankan undergraduates is the lack of proper loudness variation in their delivery.
+Many students either speak in a flat monotone, which reduces audience engagement,
+or fluctuate unpredictably in volume, which distracts listeners and undermines
+clarity. As a result, weak loudness modulation diminishes the overall impact of a
+presentation and can negatively affect both academic evaluations and professional
+readiness.
+Despite the importance of vocal delivery, the tools currently available to
+undergraduates for improving presentation skills are limited in scope and
+effectiveness. Most existing applications designed for speech practice focus primarily
+on Western users and place little emphasis on prosody features such as loudness
+variation. Instead, they concentrate on transcription accuracy, filler detection, or
+pronunciation training. Furthermore, widely used speech processing systems are
+often tuned to American or British English speech patterns and are not adapted to the
+natural rhythms and intonations of Sri Lankan English. This mismatch restricts their
+ability to provide accurate and contextually relevant feedback on volume and vocal
+dynamics.
+A further limitation lies in the absence of localized datasets and studies focused on
+prosody in Sri Lankan student speech. Research on presentation skills often
+emphasizes language correctness or filler reduction but rarely investigates loudness
+variation as a measurable and trainable skill. Without access to datasets that reflect
+local speaking styles, intonation patterns, and cultural communication norms,
+existing models cannot be directly applied to support Sri Lankan learners. This
+creates a clear research gap, as undergraduate students in Sri Lanka lack tools that
+provide meaningful insights into their vocal delivery.
+Equally important is the fact that most current tools stop at basic detection. They may
+visualize sound levels or provide average volume statistics, but they do not go further
+to support students in actively improving their vocal modulation. Simply knowing
+that a presentation was too quiet or too flat does not guarantee improvement unless
+learners are guided with structured exercises and targeted practice. Without this,
+12
+students may remain discouraged or unaware of how to adjust their delivery to
+capture and retain audience attention.
+The overarching aim of this research is to design, develop, and evaluate an intelligent
+Loudness Variation Detection and Training System tailored specifically for Sri
+Lankan undergraduate students. Public speaking and presentation delivery are
+essential academic and professional skills; however, poor loudness variation weakens
+audience engagement, reduces clarity, and diminishes confidence. While tools for
+speech improvement exist globally, they are rarely designed for the Sri Lankan
+context and do not adequately address prosodic features such as vocal intensity and
+modulation. This research seeks to bridge this gap by creating a localized, data-
+driven, and practical solution that enhances both presentation quality and
+communication effectiveness.
+To achieve this central aim, the research will pursue the following specific
+objectives:
+1. Dataset Creation
+The first objective is to build a dedicated dataset of Sri Lankan undergraduate
+presentations focusing on loudness variation. Existing corpora do not capture local
+prosodic features such as rhythm, pitch, and intonation patterns. To address this, over
+1,000 audio samples will be collected from undergraduate classroom presentations,
+seminars, and academic competitions. These samples will be annotated for loudness
+levels, monotone segments, and abrupt volume shifts, using audio analysis tools such
+as Audacity and Praat.
+This dataset will form the foundation for model training and will represent one of the
+first systematic attempts to capture prosodic variation in Sri Lankan English speech.
+Importantly, it will also contribute to future speech technology research in the region.
+2. Model Development
+The second objective is to develop a machine learning model capable of detecting
+and analyzing loudness variation in Sri Lankan English speech. Unlike generic
+speech analysis tools, this model will incorporate features such as Root Mean Square
+(RMS) energy levels, pitch contours, and intensity dynamics. By experimenting with
+13
+supervised learning algorithms and deep learning architectures, the system will be
+designed to identify monotone delivery, excessive loudness shifts, and optimal
+variation ranges.
+The adaptability of the model is a key contribution it will be trained not only to
+recognize universal loudness patterns but also to account for cultural and linguistic
+influences that shape Sri Lankan English speech.
+3. Skill Development Exercises
+Beyond detection, the research seeks to develop interactive training exercises that
+help students consciously improve their loudness variation. Exercises will include
+real-time feedback on voice projection, practice modules to encourage emphasis
+through controlled modulation, and performance tracking to measure progress over
+time. Gamified features such as scoring, badges, and progress comparisons will
+motivate learners while promoting confidence in their vocal delivery.
+This approach ensures that students are not only made aware of their weaknesses but
+are also given practical tools to strengthen their vocal expressiveness.
+4. Evaluation of Effectiveness
+The fourth objective is to evaluate the effectiveness of the proposed system through
+controlled experiments with undergraduate students. Their presentation performance
+will be measured before and after system use, focusing on key metrics such as range
+of loudness variation, audience engagement scores, and self-reported confidence.
+This evaluation ensures that the system is not only a theoretical construct but a
+practical solution capable of producing measurable improvements in communication
+ability.
+5. Scalability for Institutional Use
+Finally, the research aims to explore the scalability of the system for academic and
+professional training environments. In universities, the tool could be integrated into
+communication skill development courses, while in corporate contexts it could
+support employee training for client interactions, leadership roles, and public
+speaking. By providing objective, automated, and culturally relevant assessment
+14
+mechanisms, the system will contribute to raising communication standards at both
+individual and institutional levels.
+To design a system that accurately supports individuals in improving their
+presentation delivery through loudness variation detection, a structured requirement
+gathering process was carried out. This step was crucial to ensure that the system
+meets both technical goals and user expectations. The requirement gathering process
+included analyzing past research, reviewing existing tools, and identifying user
+needs. By combining theoretical knowledge with practical challenges, this process
+laid a solid foundation for the development of a user-friendly solution.
+
+Technical Feasibility
+The technical feasibility evaluates the practicality of developing the Loudness
+Variation Detection system within SPEAKRAFT – AI Powered Presentation
+Skill Trainer using currently available technologies, tools, and expertise. The system
+involves AI-driven analysis of audio presentations, requiring advanced signal
+processing and machine learning techniques to measure and improve loudness in real
+time.
+The proposed system will leverage Python as the primary programming language,
+along with libraries such as Librosa for audio feature extraction, Scikit-learn for
+machine learning model implementation, and Joblib for model persistence. The
+18
+front-end interface will use React, providing an intuitive user interface for students
+to record, practice, and review their presentations. For data management, CSV
+datasets or SQL databases will store audio recordings, extracted acoustic features,
+and model predictions.
+The model for loudness prediction uses a multi-feature approach, incorporating
+Peak, LUFS, Zero-Crossing Rate (ZCR), and Spectral Centroid to calculate RMS
+and capture detailed loudness variations. These features are critical for detecting
+subtle differences in voice volume, identifying low, acceptable, and high loudness
+levels, and adapting to Sri Lankan English accents. The system also supports near
+real-time feedback (~3 seconds delay), allowing learners to adjust their voice
+dynamically during practice.
+This approach ensures that the technical design is not only feasible with current tools
+but also capable of providing accurate, real-time, and user-centered loudness training
+for undergraduate presenters.

@@ -3,25 +3,56 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Present from "./components/Present";
 import PaceManagement from "./components/PaceManagement";
+import PaceManagementHome from "./components/PaceManagementHome";
+import FillerWords from "./components/FillerWords";
+import Loudness from "./components/Loudness";
+import EmotionAnalysis from "./components/EmotionAnalysis";
 import Login from "./components/Login";
+import Register from "./components/Register";
+import Dashboard from "./components/Dashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
+import FillerWordsDetectionHome from "./components/FillerWordsDetectionHome";
+import LoudnessVariationLanding from "./components/LoudnessVariationLanding";
+import LoudnessActivities from "./components/LoudnessActivities";
 
 const App = () => {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route
-          path="/*"
-          element={
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
             <div className="flex">
               <Sidebar />
               <div className="flex-1">
-                <Routes>
-                  <Route path="present" element={<Present />} />
-                  <Route path="pace-management" element={<PaceManagement />} />
-                </Routes>
+                <Dashboard />
               </div>
             </div>
+          </ProtectedRoute>
+        } />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <div className="flex">
+                <Sidebar />
+                <div className="flex-1">
+                  <Routes>
+                    <Route path="present" element={<Present />} />
+                    <Route path="pace-management-landing" element={<PaceManagementHome />} />
+                    <Route path="pace-management" element={<PaceManagement />} />
+                    <Route path="filler-words-landing" element={<FillerWordsDetectionHome />} />
+                    <Route path="filler-words-detection" element={<FillerWords />} />
+                    <Route path="loudness-variation-landing" element={<LoudnessVariationLanding />} />
+                    <Route path="loudness-practice" element={<Loudness />} />
+                    <Route path="loudness-activities" element={<LoudnessActivities />} />
+                    <Route path="emotion-analysis" element={<EmotionAnalysis />} />
+                  </Routes>
+                </div>
+              </div>
+            </ProtectedRoute>
           }
         />
       </Routes>
