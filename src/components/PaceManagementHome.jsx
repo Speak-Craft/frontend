@@ -352,9 +352,9 @@ const PaceManagementHome = () => {
                 </div>
               </Link>
               
-              {/* Gamification Card */}
+              {/* Activities Card */}
               <Link
-                to="/pace-gamification"
+                to="/pace-management-activities"
                 className="group bg-gradient-to-br from-yellow-500/20 to-orange-500/20 hover:from-yellow-500/30 hover:to-orange-500/30 rounded-xl p-4 border-2 border-yellow-500/30 hover:border-yellow-500/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
                 <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -373,8 +373,8 @@ const PaceManagementHome = () => {
                   
                   {/* Context - Bottom/Right Side */}
                   <div className="flex-1 text-center sm:text-left w-full sm:w-auto">
-                    <h4 className="text-white font-bold text-sm mb-2">Training Activities</h4>
-                    <p className="text-gray-300 text-xs mb-3">Earn badges, compete with others, and track your progress through engaging challenges</p>
+                    <h4 className="text-white font-bold text-sm mb-2">Interactive Activities</h4>
+                    <p className="text-gray-300 text-xs mb-3">Master pace management through real-time activities, earn badges, and track your progress</p>
                     
                     <div className="space-y-2 mb-3">
                       <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
@@ -383,16 +383,16 @@ const PaceManagementHome = () => {
                       </div>
                       <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaRocket className="text-yellow-400" />
-                        <span>Leaderboard</span>
+                        <span>Real-time Feedback</span>
                       </div>
                       <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-400">
                         <FaTrophy className="text-yellow-400" />
-                        <span>Daily Challenges</span>
+                        <span>Interactive Challenges</span>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-yellow-400 font-medium">
-                      <span>View Progress</span>
+                      <span>Start Activities</span>
                       <FaRocket className="text-xs" />
                     </div>
                   </div>
