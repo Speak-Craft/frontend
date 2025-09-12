@@ -8,6 +8,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    hmr: {
+      port: 5173,
+    },
+    host: true,
+  },
   optimizeDeps: {
     disable: true,
   },

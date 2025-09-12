@@ -28,6 +28,129 @@ import * as htmlToImage from "html-to-image";
 
 import image01 from "../assets/images/pacebg.png";
 
+// Industry-Standard Pause Values (Toastmasters/Presentations)
+const MICRO_PAUSE = 0.1;      // Breathing, emphasis (0.1-0.3s)
+const SHORT_PAUSE = 0.3;      // Natural flow, comma pauses (0.3-1.0s)
+const MED_PAUSE = 1.0;        // Sentence breaks, transitions (1.0-2.5s)
+const LONG_PAUSE = 2.5;       // Paragraph breaks, audience engagement (2.5-5.0s)
+const EXCESSIVE_PAUSE = 5.0;  // Problematic, needs improvement (>5.0s)
+
+// Frontend calculation functions extracted from feature_extraction2.py
+const calculatePauseMetrics = (features) => {
+  const pauseRatio = features.pause_ratio || 0;
+  const shortCount = features.short_count || 0;
+  const medCount = features.med_count || 0;
+  const longCount = features.long_count || 0;
+  const excessiveCount = features.excessive_count || 0;
+  const totalPauseTime = features.total_pause_time || 0;
+  const pauseP50 = features.pause_p50 || 0;
+  const pauseStd = features.pause_std || 0;
+  const pauseMax = features.pause_max || 0;
+  const pauseMin = features.pause_min || 0;
+  const pauseP90 = features.pause_p90 || 0;
+  const pauseP95 = features.pause_p95 || 0;
+  const maxLongStreak = features.max_long_streak || 0;
+  const pauseEfficiency = features.pause_efficiency || 0;
+  const pausePatternRegularity = features.pause_pattern_regularity || 0;
+  const pauseSpacingConsistency = features.pause_spacing_consistency || 0;
+
+  return {
+    pauseRatio: pauseRatio * 100, // Convert to percentage
+    shortCount,
+    medCount,
+    longCount,
+    excessiveCount,
+    totalPauseTime,
+    averagePauseLength: pauseP50,
+    pauseStd,
+    pauseMax,
+    pauseMin,
+    pauseP90,
+    pauseP95,
+    maxLongStreak,
+    pauseEfficiency,
+    pausePatternRegularity: pausePatternRegularity * 100,
+    pauseSpacingConsistency: pauseSpacingConsistency * 100
+  };
+};
+
+const calculateAdvancedMetrics = (features) => {
+  return {
+    // Core pause metrics
+    short_pauses: features.short_count || 0,
+    medium_pauses: features.med_count || 0,
+    long_pauses: features.long_count || 0,
+    excessive_pauses: features.excessive_count || 0,
+    total_pause_time: features.total_pause_time || 0,
+    pause_ratio: (features.pause_ratio || 0) * 100,
+    average_pause_length: features.pause_p50 || 0,
+    pause_std: features.pause_std || 0,
+    pause_max: features.pause_max || 0,
+    pause_min: features.pause_min || 0,
+    pause_p90: features.pause_p90 || 0,
+    pause_p95: features.pause_p95 || 0,
+    max_long_streak: features.max_long_streak || 0,
+    pause_efficiency: features.pause_efficiency || 0,
+    pause_pattern_regularity: (features.pause_pattern_regularity || 0) * 100,
+    pause_spacing_consistency: (features.pause_spacing_consistency || 0) * 100,
+    
+    // Novel pause features
+    contextual_pause_score: features.contextual_pause_score || 0,
+    transition_pause_count: features.transition_pause_count || 0,
+    emphasis_pause_count: features.emphasis_pause_count || 0,
+    optimal_transition_ratio: (features.optimal_transition_ratio || 0) * 100,
+    optimal_emphasis_ratio: (features.optimal_emphasis_ratio || 0) * 100,
+    pause_rhythm_consistency: (features.pause_rhythm_consistency || 0) * 100,
+    golden_ratio_pauses: (features.golden_ratio_pauses || 0) * 100,
+    pause_entropy: (features.pause_entropy || 0) * 100,
+    pause_autocorrelation: (features.pause_autocorrelation || 0) * 100,
+    cognitive_pause_score: (features.cognitive_pause_score || 0) * 100,
+    memory_retrieval_pauses: features.memory_retrieval_pauses || 0,
+    confidence_score: (features.confidence_score || 0) * 100,
+    optimal_cognitive_pause_ratio: (features.optimal_cognitive_pause_ratio || 0) * 100,
+    pause_fractal_dimension: features.pause_fractal_dimension || 0,
+    pause_spectral_density: features.pause_spectral_density || 0,
+    pause_trend_analysis: (features.pause_trend_analysis || 0) * 100,
+    pause_volatility: features.pause_volatility || 0,
+    toastmasters_score: (features.toastmasters_compliance_score || 0) * 100,
+    
+    // Pace management metrics
+    wpm_mean: features.wpm_mean || 0,
+    wpm_std: features.wpm_std || 0,
+    wpm_cv: (features.wpm_cv || 0) * 100,
+    wpm_delta_std: features.wpm_delta_std || 0,
+    wpm_jerk: features.wpm_jerk || 0,
+    wpm_acceleration: features.wpm_acceleration || 0,
+    wpm_consistency: (1 - (features.wpm_cv || 0)) * 100,
+    wpm_stability: (1 - (features.wpm_delta_std || 0) / 10) * 100,
+    
+    // Rhythm and flow metrics
+    rhythm_outliers: features.rhythm_outliers || 0,
+    rhythm_regularity: (features.rhythm_regularity || 0) * 100,
+    speech_continuity: (features.speech_continuity || 0) * 100,
+    speaking_efficiency: (features.speaking_efficiency || 0) * 100,
+    gap_clustering: features.gap_clustering || 0,
+    
+    // Voice quality metrics
+    pitch_mean: features.pitch_mean || 0,
+    pitch_std: features.pitch_std || 0,
+    jitter_local: features.jitter_local || 0,
+    shimmer_local: features.shimmer_local || 0,
+    hnr_mean: features.hnr_mean || 0,
+    f1_mean: features.f1_mean || 0,
+    f2_mean: features.f2_mean || 0,
+    f3_mean: features.f3_mean || 0,
+    
+    // Additional metrics for radar chart
+    rhythm_consistency: (features.pause_rhythm_consistency || 0) * 100,
+    cognitive_load: (features.cognitive_pause_score || 0) * 100,
+    contextual_score: features.contextual_pause_score || 0,
+  };
+};
+
+
+
+
 const PaceManagement = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -47,6 +170,8 @@ const PaceManagement = () => {
     duration: 0,
     wpm: 0,
     prediction: "",
+    pausePrediction: "",
+    modelPrediction: "",
     consistencyScore: 0,
     feedback: "",
     pacingCurve: [],
@@ -79,6 +204,7 @@ const PaceManagement = () => {
     suggestions: [],
     structuredSuggestions: {},
   });
+
 
   const [recordTime, setRecordTime] = useState(0);
 
@@ -238,7 +364,7 @@ const PaceManagement = () => {
       // Call both rate and pause analysis endpoints
       const [rateResponse, pauseResponse] = await Promise.all([
         // Rate analysis - UPDATE THIS URL TO MATCH YOUR RATE MODEL
-        fetch("http://localhost:3001/api/rate-analysis/", {
+        fetch("http://localhost:8000/rate-analysis/", {
           method: "POST",
           body: formData,
         }).catch(err => {
@@ -247,7 +373,7 @@ const PaceManagement = () => {
         }),
         
         // Pause analysis
-        fetch("http://localhost:3001/api/pause-analysis/", {
+        fetch("http://localhost:8000/pause-analysis/", {
           method: "POST",
           body: formData,
         })
@@ -261,47 +387,171 @@ const PaceManagement = () => {
       if (pauseData.error) {
         console.error("Pause analysis error:", pauseData.error);
       } else {
-        // Combine rate and pause analysis results
+        // Get raw features for frontend calculations
+        const rawFeatures = pauseData.rawFeatures || {};
+        
+        // Calculate frontend-based metrics
+        const calculatedPauseMetrics = calculatePauseMetrics(rawFeatures);
+        const calculatedAdvancedMetrics = calculateAdvancedMetrics(rawFeatures);
+        
+        // Send frontend-calculated features to backend for suggestion generation
+        let backendSuggestions = {};
+        let pauseRecommendations = [];
+        let priorityImprovements = [];
+        
+        try {
+          const suggestionsResponse = await fetch("http://localhost:8000/generate-suggestions/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              features: rawFeatures
+            })
+          });
+          
+          if (suggestionsResponse.ok) {
+            const suggestionsData = await suggestionsResponse.json();
+            backendSuggestions = suggestionsData.structuredSuggestions || {};
+            pauseRecommendations = suggestionsData.pauseRecommendations || [];
+            priorityImprovements = suggestionsData.priorityImprovements || [];
+            console.log("Backend suggestions generated successfully");
+          } else {
+            console.warn("Failed to get backend suggestions, using empty fallback");
+            // Fallback to empty suggestions
+            backendSuggestions = {};
+            pauseRecommendations = [];
+            priorityImprovements = [];
+          }
+        } catch (error) {
+          console.warn("Error getting backend suggestions:", error);
+          // Fallback to empty suggestions
+          backendSuggestions = {};
+          pauseRecommendations = [];
+          priorityImprovements = [];
+        }
+
+        // Calculate label in frontend for accuracy
+        // Note: Backend now calculates WPM based on actual speaking time (excluding pauses)
+        const frontendCalculatedLabel = getWpmLabel(rateData.wpm || 0);
+        console.log(`Frontend calculated label for ${rateData.wpm} WPM: ${frontendCalculatedLabel}`);
+        
+        // Get feedback from backend using frontend-calculated label
+        let backendRateFeedback = null;
+        const requestData = {
+          wpm: rateData.wpm || 0,
+          label: frontendCalculatedLabel,
+          consistencyScore: rateData.consistencyScore || 0,
+          pacingCurve: rateData.pacingCurve || [],
+          duration: rateData.duration || 0,
+          wordCount: rateData.wordCount || 0
+        };
+        
+        console.log("Sending request to backend:", requestData);
+        
+        try {
+          // Try the direct endpoint first
+          let feedbackResponse = await fetch("http://localhost:8000/rate/generate-rate-feedback/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestData)
+          });
+          
+          // If that fails, try the redirect endpoint
+          if (!feedbackResponse.ok) {
+            console.log("Direct endpoint failed, trying redirect endpoint...");
+            feedbackResponse = await fetch("http://localhost:8000/generate-rate-feedback/", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(requestData)
+            });
+          }
+          
+          if (feedbackResponse.ok) {
+            const feedbackData = await feedbackResponse.json();
+            backendRateFeedback = feedbackData.enhancedFeedback;
+            console.log("Backend feedback generated successfully:", feedbackData);
+          } else {
+            console.warn("Failed to get backend feedback, using frontend fallback. Status:", feedbackResponse.status);
+          }
+        } catch (error) {
+          console.warn("Error getting backend feedback:", error);
+        }
+        
+        // Use backend feedback if available, otherwise fallback to frontend
+        let frontendRateFeedback;
+        if (backendRateFeedback) {
+          console.log("Using backend feedback");
+          frontendRateFeedback = backendRateFeedback;
+        } else {
+          console.log("Using frontend fallback feedback");
+          frontendRateFeedback = generateFrontendFeedback(
+            rateData.wpm || 0,
+            frontendCalculatedLabel,
+            rateData.consistencyScore || 0,
+            rateData.pacingCurve || [],
+            rateData.duration || 0,
+            rateData.wordCount || 0
+          );
+        }
+        
+        console.log("Final feedback being used:", frontendRateFeedback);
+
+        // Combine rate and pause analysis results with frontend calculations
         setResults({
-          // Rate analysis results (from your rate model)
+          // Rate analysis results (from your rate model) - KEEP UNCHANGED
           wordCount: rateData.wordCount || 0,
           duration: rateData.duration || 0,
           wpm: rateData.wpm || 0,
+          prediction: frontendCalculatedLabel, // Frontend-calculated label for accuracy
           consistencyScore: rateData.consistencyScore || 0,
           pacingCurve: rateData.pacingCurve || [],
           voiceQuality: rateData.voiceQuality || {},
+          rateEnhancedFeedback: frontendRateFeedback, // Use frontend-calculated feedback
+          modelPrediction: rateData.modelPrediction || rateData.prediction || "", // Store backend prediction for reference
           
-          // Pause analysis results (from pause model)
-          prediction: pauseData.pauseAnalysis?.prediction || "Analyzing...",
-          feedback: pauseData.pauseAnalysis?.suggestions?.[0] || "Analysis in progress...",
+          // Frontend-calculated pause analysis results
+          pausePrediction: pauseData.pauseAnalysis?.prediction || "Analyzing...", // Pause model prediction
+          feedback: frontendRateFeedback?.overall_assessment || (rateData && (rateData.feedback || (rateData.enhancedFeedback && rateData.enhancedFeedback.pace_analysis && rateData.enhancedFeedback.pace_analysis.feedback))) || "Analysis in progress...",
           pauseTimeline: pauseData.pauseTimeline || [],
           pauseDistribution: pauseData.pauseDistribution || [],
-          advancedMetrics: pauseData.advancedMetrics || {},
+          advancedMetrics: calculatedAdvancedMetrics,
           pauseAnalysis: {
             prediction: pauseData.pauseAnalysis?.prediction || "Unknown",
             confidence: pauseData.pauseAnalysis?.confidence || 0,
             probabilities: pauseData.pauseAnalysis?.probabilities || {},
             suggestions: pauseData.pauseAnalysis?.suggestions || [],
-            shortPauses: pauseData.pauseAnalysis?.shortPauses || 0,
-            mediumPauses: pauseData.pauseAnalysis?.mediumPauses || 0,
-            longPauses: pauseData.pauseAnalysis?.longPauses || 0,
-            excessivePauses: pauseData.pauseAnalysis?.excessivePauses || 0,
-            totalPauseTime: pauseData.pauseAnalysis?.totalPauseTime || 0,
-            pauseRatio: pauseData.pauseAnalysis?.pauseRatio || 0,
-            averagePauseLength: pauseData.pauseAnalysis?.averagePauseLength || 0,
-            pauseStd: pauseData.pauseAnalysis?.pauseStd || 0,
-            pauseMax: pauseData.pauseAnalysis?.pauseMax || 0,
-            pauseMin: pauseData.pauseAnalysis?.pauseMin || 0,
-            pauseP90: pauseData.pauseAnalysis?.pauseP90 || 0,
-            pauseP95: pauseData.pauseAnalysis?.pauseP95 || 0,
-            maxLongStreak: pauseData.pauseAnalysis?.maxLongStreak || 0,
-            pauseEfficiency: pauseData.pauseAnalysis?.pauseEfficiency || 0,
-            pausePatternRegularity: pauseData.pauseAnalysis?.pausePatternRegularity || 0,
-            pauseSpacingConsistency: pauseData.pauseAnalysis?.pauseSpacingConsistency || 0
+            shortPauses: calculatedPauseMetrics.shortCount,
+            mediumPauses: calculatedPauseMetrics.medCount,
+            longPauses: calculatedPauseMetrics.longCount,
+            excessivePauses: calculatedPauseMetrics.excessiveCount,
+            totalPauseTime: calculatedPauseMetrics.totalPauseTime,
+            pauseRatio: calculatedPauseMetrics.pauseRatio,
+            averagePauseLength: calculatedPauseMetrics.averagePauseLength,
+            pauseStd: calculatedPauseMetrics.pauseStd,
+            pauseMax: calculatedPauseMetrics.pauseMax,
+            pauseMin: calculatedPauseMetrics.pauseMin,
+            pauseP90: calculatedPauseMetrics.pauseP90,
+            pauseP95: calculatedPauseMetrics.pauseP95,
+            maxLongStreak: calculatedPauseMetrics.maxLongStreak,
+            pauseEfficiency: calculatedPauseMetrics.pauseEfficiency,
+            pausePatternRegularity: calculatedPauseMetrics.pausePatternRegularity,
+            pauseSpacingConsistency: calculatedPauseMetrics.pauseSpacingConsistency
           },
-          suggestions: pauseData.suggestions || [],
-          structuredSuggestions: pauseData.structuredSuggestions || {},
-          enhancedFeedback: rateData.enhancedFeedback || {},
+          suggestions: pauseRecommendations, // Backend-generated pause recommendations
+          priorityImprovements: priorityImprovements, // Backend-generated comprehensive improvements
+          structuredSuggestions: backendSuggestions, // Backend-generated structured suggestions
+          enhancedFeedback: null,
+          realTimeFeedback: null,
+          comprehensiveReport: null,
+          // Keep backend data as fallback
+          backendSuggestions: pauseData.suggestions || [],
+          backendPriorityImprovements: pauseData.priorityImprovements || [],
+          improvementAreas: [],
         });
       }
     } catch (err) {
@@ -309,11 +559,196 @@ const PaceManagement = () => {
     }
   };
 
+  // Frontend WPM label calculation (using exact same logic as model training)
   const getWpmLabel = (wpm) => {
     if (wpm < 100) return "Slow";
     if (wpm <= 150) return "Ideal";
     return "Fast";
   };
+
+  // Frontend feedback generation based on calculated label
+  const generateFrontendFeedback = (wpm, label, consistencyScore, pacingCurve, duration, wordCount) => {
+    const feedback = {
+      pace_analysis: {
+        category: label,
+        emoji: getWpmEmoji(label),
+        feedback: getWpmFeedback(wpm, label),
+        suggestions: getWpmSuggestions(wpm, label)
+      },
+      consistency_analysis: {
+        category: getConsistencyCategory(consistencyScore),
+        emoji: getConsistencyEmoji(consistencyScore),
+        feedback: getConsistencyFeedback(consistencyScore),
+        suggestions: getConsistencySuggestions(consistencyScore),
+        score: consistencyScore
+      },
+      flow_analysis: {
+        category: getFlowCategory(duration, wordCount),
+        emoji: getFlowEmoji(duration, wordCount),
+        feedback: getFlowFeedback(duration, wordCount),
+        words_per_second: duration > 0 ? wordCount / duration : null
+      }
+    };
+    
+    // Generate overall assessment like the backend does
+    const pace_emoji = feedback.pace_analysis.emoji;
+    const pace_category = feedback.pace_analysis.category;
+    const consistency_emoji = feedback.consistency_analysis.emoji;
+    const consistency_category = feedback.consistency_analysis.category;
+    const flow_emoji = feedback.flow_analysis.emoji;
+    const flow_category = feedback.flow_analysis.category;
+    
+    feedback.overall_assessment = `${pace_emoji} ${pace_category} Pace • ${consistency_emoji} ${consistency_category} Consistency • ${flow_emoji} ${flow_category} Flow`;
+    
+    return feedback;
+  };
+
+  const getWpmEmoji = (label) => {
+    switch (label) {
+      case "Slow": return "🟡";
+      case "Ideal": return "🟢";
+      case "Fast": return "🟠";
+      default: return "❓";
+    }
+  };
+
+  const getWpmFeedback = (wpm, label) => {
+    switch (label) {
+      case "Slow":
+        return "Your pace is below the ideal range but manageable with practice.";
+      case "Ideal":
+        return "Excellent! You're speaking at an optimal pace for audience engagement.";
+      case "Fast":
+        return "Your pace is above optimal and may affect audience comprehension.";
+      default:
+        return "Unable to determine pace category.";
+    }
+  };
+
+  const getWpmSuggestions = (wpm, label) => {
+    switch (label) {
+      case "Slow":
+        return [
+          "Aim to increase your pace by 15-20 WPM",
+          "Practice with timing exercises using a stopwatch",
+          "Focus on reducing unnecessary pauses between words"
+        ];
+      case "Ideal":
+        return [
+          "Maintain this pace consistently throughout your presentation",
+          "Use strategic pauses for emphasis rather than slowing down",
+          "Practice varying your pace slightly for dynamic delivery"
+        ];
+      case "Fast":
+        return [
+          "Practice breathing exercises to control your pace",
+          "Use punctuation marks as natural pause indicators",
+          "Record yourself and identify sections that need slowing down"
+        ];
+      default:
+        return ["Continue practicing to improve your speech pace."];
+    }
+  };
+
+  const getConsistencyCategory = (score) => {
+    if (score >= 85) return "Excellent";
+    if (score >= 70) return "Good";
+    if (score >= 50) return "Fair";
+    return "Needs Improvement";
+  };
+
+  const getConsistencyEmoji = (score) => {
+    if (score >= 85) return "🏆";
+    if (score >= 70) return "✅";
+    if (score >= 50) return "⚠️";
+    return "🔄";
+  };
+
+  const getConsistencyFeedback = (score) => {
+    if (score >= 85) return "Your pacing consistency is outstanding!";
+    if (score >= 70) return "Good pacing consistency with room for improvement.";
+    if (score >= 50) return "Moderate pacing consistency that can be improved.";
+    return "Significant pacing variations detected.";
+  };
+
+  const getConsistencySuggestions = (score) => {
+    if (score >= 85) return [
+      "Maintain this level of consistency",
+      "Use your natural rhythm to enhance delivery"
+    ];
+    if (score >= 70) return [
+      "Practice maintaining steady rhythm",
+      "Use breathing techniques for consistent pacing"
+    ];
+    if (score >= 50) return [
+      "Practice with a metronome to develop steady rhythm",
+      "Identify sections where pace varies significantly"
+    ];
+    return [
+      "Focus on maintaining consistent breathing patterns",
+      "Practice reading with consistent timing",
+      "Use pacing markers throughout your speech"
+    ];
+  };
+
+  const getFlowCategory = (duration, wordCount) => {
+    if (duration <= 0) return "Unknown";
+    const wordsPerSecond = wordCount / duration;
+    if (wordsPerSecond < 1.5) return "Paused";
+    if (wordsPerSecond < 2.5) return "Natural";
+    return "Rapid";
+  };
+
+  const getFlowEmoji = (duration, wordCount) => {
+    const category = getFlowCategory(duration, wordCount);
+    switch (category) {
+      case "Paused": return "⏸️";
+      case "Natural": return "🌊";
+      case "Rapid": return "⚡";
+      default: return "❓";
+    }
+  };
+
+  const getFlowFeedback = (duration, wordCount) => {
+    const category = getFlowCategory(duration, wordCount);
+    switch (category) {
+      case "Paused":
+        return "Your speech has many pauses, which can be strategic or distracting.";
+      case "Natural":
+        return "Good natural flow with appropriate pauses.";
+      case "Rapid":
+        return "Very rapid speech flow that may need pacing control.";
+      default:
+        return "Unable to analyze speech flow.";
+    }
+  };
+
+  // Calculate excessive pauses count from backend data
+  const calculateExcessivePauses = () => {
+    // Use the actual excessive pause count from the backend analysis
+    if (results.pauseAnalysis && typeof results.pauseAnalysis.excessivePauses === 'number') {
+      return results.pauseAnalysis.excessivePauses;
+    }
+    
+    // Fallback: calculate from timeline data if backend data not available
+    if (!results.pauseTimeline || !Array.isArray(results.pauseTimeline)) {
+      return 0;
+    }
+
+    const EXCESSIVE_PAUSE_THRESHOLD = 5.0; // 5 seconds (industry standard)
+    let excessiveCount = 0;
+
+    results.pauseTimeline.forEach(pause => {
+      const duration = pause.duration || 0;
+      if (duration > EXCESSIVE_PAUSE_THRESHOLD) {
+        excessiveCount++;
+      }
+    });
+
+    return excessiveCount;
+  };
+
+
 
   const downloadPDFReport = () => {
     const node = document.getElementById("pdf-report");
@@ -544,28 +979,6 @@ const PaceManagement = () => {
                     📝 Generate Report
                   </button>
 
-                  <button
-                    onClick={() => {
-                      const suggestions = results.suggestions || [];
-                      if (suggestions.length > 0) {
-                        alert(`💡 Top Suggestions:\n\n${suggestions.slice(0, 3).join('\n\n')}`);
-                      } else {
-                        alert("💡 Record your speech first to get personalized suggestions!");
-                      }
-                    }}
-                    style={{
-                      backgroundColor: "#b79602",
-                      color: "white",
-                      padding: "0.6rem 1.2rem",
-                      borderRadius: "0.5rem",
-                      border: "none",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                    }}
-                  >
-                    💡 Suggestions
-                  </button>
                 </div>
               </div>
             )}
@@ -789,7 +1202,7 @@ const PaceManagement = () => {
                       }}
                     />
                     <p className="mt-1 text-white font-medium text-sm lg:text-base">
-                      {getWpmLabel(results.wpm)}({results.wpm.toFixed(1)} WPM)
+                      {results.prediction || getWpmLabel(results.wpm)} ({results.wpm.toFixed(1)} WPM)
                     </p>
                   </div>
 
@@ -834,20 +1247,20 @@ const PaceManagement = () => {
                     <p className="text-white text-base lg:text-lg">{results.feedback}</p>
                   </div>
 
-                  {/* Enhanced Feedback Details */}
-                  {results.enhancedFeedback && (
+                  {/* Enhanced Feedback Details - Frontend Calculated */}
+                  {results.rateEnhancedFeedback && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       {/* Pace Analysis */}
                       <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-xl p-4 border-2 border-white/20">
                         <div className="flex items-center gap-2 mb-3">
-                          <span className="text-2xl">{results.enhancedFeedback.pace_analysis?.emoji}</span>
+                          <span className="text-2xl">{results.rateEnhancedFeedback.pace_analysis?.emoji}</span>
                           <h4 className="text-white font-semibold">Pace Analysis</h4>
                         </div>
                         <div className="text-white/90 text-sm mb-3">
-                          {results.enhancedFeedback.pace_analysis?.feedback}
+                          {results.rateEnhancedFeedback.pace_analysis?.feedback}
                         </div>
                         <div className="space-y-2">
-                          {results.enhancedFeedback.pace_analysis?.suggestions?.slice(0, 2).map((suggestion, index) => (
+                          {results.rateEnhancedFeedback.pace_analysis?.suggestions?.slice(0, 2).map((suggestion, index) => (
                             <div key={index} className="text-white/70 text-xs bg-white/10 rounded-lg p-2">
                               💡 {suggestion}
                             </div>
@@ -858,19 +1271,19 @@ const PaceManagement = () => {
                       {/* Consistency Analysis */}
                       <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-xl p-4 border-2 border-white/20">
                         <div className="flex items-center gap-2 mb-3">
-                          <span className="text-2xl">{results.enhancedFeedback.consistency_analysis?.emoji}</span>
+                          <span className="text-2xl">{results.rateEnhancedFeedback.consistency_analysis?.emoji}</span>
                           <h4 className="text-white font-semibold">Consistency</h4>
                         </div>
                         <div className="text-white/90 text-sm mb-3">
-                          {results.enhancedFeedback.consistency_analysis?.feedback}
+                          {results.rateEnhancedFeedback.consistency_analysis?.feedback}
                         </div>
-                        {results.enhancedFeedback.consistency_analysis?.std_dev && (
+                        {results.rateEnhancedFeedback.consistency_analysis?.score && (
                           <div className="text-white/70 text-xs mb-2">
-                            Std Dev: {results.enhancedFeedback.consistency_analysis.std_dev.toFixed(1)} WPM
+                            Score: {results.rateEnhancedFeedback.consistency_analysis.score.toFixed(1)}%
                           </div>
                         )}
                         <div className="space-y-2">
-                          {results.enhancedFeedback.consistency_analysis?.suggestions?.slice(0, 2).map((suggestion, index) => (
+                          {results.rateEnhancedFeedback.consistency_analysis?.suggestions?.slice(0, 2).map((suggestion, index) => (
                             <div key={index} className="text-white/70 text-xs bg-white/10 rounded-lg p-2">
                               💡 {suggestion}
                             </div>
@@ -881,52 +1294,17 @@ const PaceManagement = () => {
                       {/* Flow Analysis */}
                       <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-xl p-4 border-2 border-white/20">
                         <div className="flex items-center gap-2 mb-3">
-                          <span className="text-2xl">{results.enhancedFeedback.flow_analysis?.emoji}</span>
+                          <span className="text-2xl">{results.rateEnhancedFeedback.flow_analysis?.emoji}</span>
                           <h4 className="text-white font-semibold">Speech Flow</h4>
                         </div>
                         <div className="text-white/90 text-sm mb-3">
-                          {results.enhancedFeedback.flow_analysis?.feedback}
+                          {results.rateEnhancedFeedback.flow_analysis?.feedback}
                         </div>
-                        {results.enhancedFeedback.flow_analysis?.words_per_second && (
+                        {results.rateEnhancedFeedback.flow_analysis?.words_per_second && (
                           <div className="text-white/70 text-xs mb-2">
-                            Flow Rate: {results.enhancedFeedback.flow_analysis.words_per_second.toFixed(1)} words/sec
+                            Flow Rate: {results.rateEnhancedFeedback.flow_analysis.words_per_second.toFixed(1)} words/sec
                           </div>
                         )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Priority Recommendations */}
-                  {results.enhancedFeedback?.priority_recommendations && (
-                    <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-xl p-4 border-2 border-[#00ccff]/40">
-                      <h3 className="text-[#00ccff] text-lg lg:text-xl mb-4 text-center">🚀 Priority Action Items</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {results.enhancedFeedback.priority_recommendations.map((rec, index) => (
-                          <div key={index} className={`p-4 rounded-lg border-2 ${
-                            rec.priority === "High" 
-                              ? "bg-red-500/20 border-red-500/50" 
-                              : rec.priority === "Medium"
-                              ? "bg-yellow-500/20 border-yellow-500/50"
-                              : "bg-green-500/20 border-green-500/50"
-                          }`}>
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                rec.priority === "High" 
-                                  ? "bg-red-500 text-white" 
-                                  : rec.priority === "Medium"
-                                  ? "bg-yellow-500 text-white"
-                                  : "bg-green-500 text-white"
-                              }`}>
-                                {rec.priority}
-                              </span>
-                              <h4 className="text-white font-semibold">{rec.area}</h4>
-                            </div>
-                            <p className="text-white/90 text-sm mb-2">{rec.action}</p>
-                            <p className="text-white/70 text-xs bg-white/10 rounded p-2">
-                              🎯 {rec.exercise}
-                            </p>
-                          </div>
-                        ))}
                       </div>
                     </div>
                   )}
@@ -1011,34 +1389,43 @@ const PaceManagement = () => {
                   Pause Analysis & Timing
                 </h2>
 
+                {/* Use frontend-calculated data */}
+                {(() => {
+                  // Use frontend-calculated advanced metrics and suggestions
+                  const frontendAdvancedMetrics = results.advancedMetrics || {};
+                  const frontendSuggestions = results.suggestions || [];
+                  
+                  return (
+                    <>
+
                 {/* AI Model Prediction Section */}
                 <div className="mb-6 p-4 bg-gradient-to-r from-[#00171f] to-[#003b46] rounded-lg border-2 border-[#00ccff]/40">
                   <h3 className="text-[#00ccff] text-lg font-semibold mb-3">🤖 AI Pause Analysis</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="text-center">
                       <div className="text-white text-2xl font-bold mb-1">
-                        {results.pauseAnalysis.prediction?.replace(/_/g, ' ').toUpperCase() || "ANALYZING"}
+                        {results.pausePrediction?.replace(/_/g, ' ').toUpperCase() || "ANALYZING"}
                       </div>
                       <div className="text-white/70 text-sm">AI Prediction</div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-[#00ccff] text-2xl font-bold mb-1">
-                        {(results.pauseAnalysis.confidence * 100).toFixed(1)}%
+                      <div className="text-center">
+                        <div className="text-[#00ccff] text-2xl font-bold mb-1">
+                         {(results.pauseAnalysis.confidence * 100).toFixed(1)}%
+                        </div>
+                        <div className="text-white/70 text-sm">Confidence Score</div>
                       </div>
-                      <div className="text-white/70 text-sm">Confidence</div>
-                    </div>
                     <div className="text-center">
                       <div className="text-green-400 text-lg font-bold mb-1">
                         {results.pauseAnalysis.suggestions?.length || 0}
                       </div>
-                      <div className="text-white/70 text-sm">Suggestions</div>
+                      <div className="text-white/70 text-sm">Frontend Suggestions</div>
                     </div>
                   </div>
                   
-                  {/* Top AI Suggestions */}
+                  {/* Top Frontend-Calculated Suggestions */}
                   {results.pauseAnalysis.suggestions && results.pauseAnalysis.suggestions.length > 0 && (
                     <div className="mt-4">
-                      <h4 className="text-white font-semibold mb-2">💡 AI Recommendations:</h4>
+                      <h4 className="text-white font-semibold mb-2">💡 Frontend-Calculated Recommendations:</h4>
                       <div className="space-y-2">
                         {results.pauseAnalysis.suggestions.slice(0, 3).map((suggestion, index) => (
                           <div key={index} className="text-white/90 text-sm bg-white/10 rounded-lg p-2">
@@ -1055,9 +1442,9 @@ const PaceManagement = () => {
                   <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
                     <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">🚨 Excessive Pauses</h3>
                     <div className="flex justify-center items-center rounded-full w-16 h-16 lg:w-20 lg:h-20 bg-red-500/30 text-red-300 text-xl font-semibold border-2 border-red-500/50">
-                      {results.pauseAnalysis?.excessivePauses || 0}
+                      {calculateExcessivePauses()}
                     </div>
-                    <p className="text-white/70 text-xs mt-1">{'>'}5.0s (Critical)</p>
+                    <p className="text-white/70 text-xs mt-1">{'>'}5.0s (Industry Standard)</p>
                   </div>
 
                   <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
@@ -1206,17 +1593,93 @@ const PaceManagement = () => {
                   </div>
                 </div>
 
-                {/* Recommendations */}
+                {/* Pause-Specific Recommendations */}
                 <div className="w-full p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
-                  <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">Pause Recommendations</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(results.suggestions || []).slice(0, 4).map((suggestion, index) => (
-                      <div key={index} className="p-3 bg-white/10 rounded-lg">
-                        <p className="text-white text-sm">{suggestion}</p>
+                  <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">🎯 Pause-Specific Recommendations</h3>
+                  
+                  {/* High Priority Pause Issues */}
+                  {frontendSuggestions.filter(s => s.priority === "High").length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-red-300 text-lg font-semibold mb-3">🚨 High Priority Pause Issues</h4>
+                      <div className="space-y-3">
+                        {frontendSuggestions.filter(s => s.priority === "High").map((suggestion, index) => (
+                          <div key={index} className="p-4 rounded-lg border-2 bg-red-500/20 border-red-500/50">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500 text-white">
+                                {suggestion.priority}
+                              </span>
+                              <h4 className="text-white font-semibold">{suggestion.issue}</h4>
+                            </div>
+                            <p className="text-white/90 text-sm mb-2">{suggestion.action}</p>
+                            <p className="text-white/70 text-xs bg-white/10 rounded p-2">
+                              📊 {suggestion.current} → 🎯 {suggestion.target}
+                            </p>
+                            <p className="text-red-200 text-xs mt-1">{suggestion.impact}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
+                  
+                  {/* Medium Priority Pause Issues */}
+                  {frontendSuggestions.filter(s => s.priority === "Medium").length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-yellow-300 text-lg font-semibold mb-3">⚠️ Medium Priority Pause Issues</h4>
+                      <div className="space-y-3">
+                        {frontendSuggestions.filter(s => s.priority === "Medium").map((suggestion, index) => (
+                          <div key={index} className="p-4 rounded-lg border-2 bg-yellow-500/20 border-yellow-500/50">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-500 text-white">
+                                {suggestion.priority}
+                              </span>
+                              <h4 className="text-white font-semibold">{suggestion.issue}</h4>
+                            </div>
+                            <p className="text-white/90 text-sm mb-2">{suggestion.action}</p>
+                            <p className="text-white/70 text-xs bg-white/10 rounded p-2">
+                              📊 {suggestion.current} → 🎯 {suggestion.target}
+                            </p>
+                            <p className="text-yellow-200 text-xs mt-1">{suggestion.impact}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Low Priority Pause Issues */}
+                  {frontendSuggestions.filter(s => s.priority === "Low").length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-green-300 text-lg font-semibold mb-3">💡 Low Priority Pause Refinements</h4>
+                      <div className="space-y-3">
+                        {frontendSuggestions.filter(s => s.priority === "Low").map((suggestion, index) => (
+                          <div key={index} className="p-4 rounded-lg border-2 bg-green-500/20 border-green-500/50">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
+                                {suggestion.priority}
+                              </span>
+                              <h4 className="text-white font-semibold">{suggestion.issue}</h4>
+                            </div>
+                            <p className="text-white/90 text-sm mb-2">{suggestion.action}</p>
+                            <p className="text-white/70 text-xs bg-white/10 rounded p-2">
+                              📊 {suggestion.current} → 🎯 {suggestion.target}
+                            </p>
+                            <p className="text-green-200 text-xs mt-1">{suggestion.impact}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Fallback if no recommendations */}
+                  {frontendSuggestions.length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-white/70 text-lg">No specific pause issues detected!</p>
+                      <p className="text-white/50 text-sm mt-2">Your pause management is within acceptable ranges.</p>
+                    </div>
+                  )}
                 </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
 
@@ -1225,6 +1688,15 @@ const PaceManagement = () => {
                 <h2 className="text-xl lg:text-2xl font-bold text-white mt-2 mb-4">
                   AI-Powered Insights
                 </h2>
+
+                {/* Use frontend-calculated data */}
+                {(() => {
+                  // Use frontend-calculated advanced metrics and suggestions
+                  const frontendAdvancedMetrics = results.advancedMetrics || {};
+                  const frontendPriorityImprovements = results.priorityImprovements || [];
+                  
+                  return (
+                    <>
 
                 {/* AI Model Probabilities */}
                 {results.pauseAnalysis.probabilities && Object.keys(results.pauseAnalysis.probabilities).length > 0 && (
@@ -1282,7 +1754,7 @@ const PaceManagement = () => {
                         { metric: "Speaking Efficiency", value: results.advancedMetrics?.speaking_efficiency || 0 },
                         { metric: "Contextual Pause Score", value: results.advancedMetrics?.contextual_score || 0 },
                         { metric: "Cognitive Load", value: results.advancedMetrics?.cognitive_load || 0 },
-                        { metric: "Golden Ratio Pauses", value: results.advancedMetrics?.golden_ratio || 0 },
+                        { metric: "Golden Ratio Pauses", value: results.advancedMetrics?.golden_ratio_pauses || 0 },
                         { metric: "Words Per Minute Consistency", value: results.advancedMetrics?.wpm_consistency || 0 },
                         { metric: "Words Per Minute Stability", value: results.advancedMetrics?.wpm_stability || 0 },
                         { metric: "Pause Pattern Regularity", value: results.advancedMetrics?.pause_pattern_regularity || 0 },
@@ -1344,7 +1816,7 @@ const PaceManagement = () => {
                       ></div>
                     </div>
                     <p className="text-white/70 text-sm">{(results.advancedMetrics?.cognitive_load || 0).toFixed(1)}%</p>
-                    <p className="text-white/50 text-xs">Optimal Ratio: {(results.advancedMetrics?.optimal_cognitive_ratio || 0).toFixed(1)}%</p>
+                    <p className="text-white/50 text-xs">Optimal Ratio: {(results.advancedMetrics?.optimal_cognitive_pause_ratio || 0).toFixed(1)}%</p>
                   </div>
                 </div>
 
@@ -1435,27 +1907,212 @@ const PaceManagement = () => {
                   </div>
                 </div>
 
-                {/* Structured Suggestions */}
-                <div className="mt-6 p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
-                  <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">🎯 Priority Improvements</h3>
-                  <div className="space-y-4">
-                    {results.structuredSuggestions?.critical_issues?.map((issue, index) => (
-                      <div key={index} className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
-                        <h4 className="text-red-300 font-semibold">🚨 Critical: {issue.issue}</h4>
-                        <p className="text-white text-sm mt-1">{issue.action}</p>
-                        <p className="text-white/70 text-xs mt-1">Current: {issue.current} → Target: {issue.target}</p>
-                      </div>
-                    ))}
-                    
-                    {results.structuredSuggestions?.major_improvements?.map((improvement, index) => (
-                      <div key={index} className="p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
-                        <h4 className="text-yellow-300 font-semibold">⚠️ Important: {improvement.issue}</h4>
-                        <p className="text-white text-sm mt-1">{improvement.action}</p>
-                        <p className="text-white/70 text-xs mt-1">Current: {improvement.current} → Target: {improvement.target}</p>
-                      </div>
-                    ))}
+        {/* Comprehensive AI-Generated Improvements */}
+        <div className="mt-6 p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
+          <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">🧠 AI-Generated Comprehensive Improvements</h3>
+          
+          {/* High Priority Issues */}
+          {frontendPriorityImprovements.filter(s => s.priority === "High").length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-red-300 text-lg font-semibold mb-3">🚨 High Priority Speech Issues</h4>
+              <div className="space-y-3">
+                {frontendPriorityImprovements.filter(s => s.priority === "High").map((suggestion, index) => (
+                  <div key={index} className="p-4 rounded-lg border-2 bg-red-500/20 border-red-500/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500 text-white">
+                        {suggestion.priority}
+                      </span>
+                      <h4 className="text-white font-semibold">{suggestion.issue}</h4>
+                    </div>
+                    <p className="text-white/90 text-sm mb-2">{suggestion.action}</p>
+                    <p className="text-white/70 text-xs bg-white/10 rounded p-2">
+                      📊 {suggestion.current} → 🎯 {suggestion.target}
+                    </p>
+                    <p className="text-red-200 text-xs mt-1">{suggestion.impact}</p>
                   </div>
-                </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Medium Priority Issues */}
+          {frontendPriorityImprovements.filter(s => s.priority === "Medium").length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-yellow-300 text-lg font-semibold mb-3">⚠️ Medium Priority Improvements</h4>
+              <div className="space-y-3">
+                {frontendPriorityImprovements.filter(s => s.priority === "Medium").map((suggestion, index) => (
+                  <div key={index} className="p-4 rounded-lg border-2 bg-yellow-500/20 border-yellow-500/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-500 text-white">
+                        {suggestion.priority}
+                      </span>
+                      <h4 className="text-white font-semibold">{suggestion.issue}</h4>
+                    </div>
+                    <p className="text-white/90 text-sm mb-2">{suggestion.action}</p>
+                    <p className="text-white/70 text-xs bg-white/10 rounded p-2">
+                      📊 {suggestion.current} → 🎯 {suggestion.target}
+                    </p>
+                    <p className="text-yellow-200 text-xs mt-1">{suggestion.impact}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Low Priority Issues */}
+          {frontendPriorityImprovements.filter(s => s.priority === "Low").length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-green-300 text-lg font-semibold mb-3">💡 Low Priority Refinements</h4>
+              <div className="space-y-3">
+                {frontendPriorityImprovements.filter(s => s.priority === "Low").map((suggestion, index) => (
+                  <div key={index} className="p-4 rounded-lg border-2 bg-green-500/20 border-green-500/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
+                        {suggestion.priority}
+                      </span>
+                      <h4 className="text-white font-semibold">{suggestion.issue}</h4>
+                    </div>
+                    <p className="text-white/90 text-sm mb-2">{suggestion.action}</p>
+                    <p className="text-white/70 text-xs bg-white/10 rounded p-2">
+                      📊 {suggestion.current} → 🎯 {suggestion.target}
+                    </p>
+                    <p className="text-green-200 text-xs mt-1">{suggestion.impact}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Practice Exercises */}
+          {frontendPriorityImprovements.filter(s => s.priority === "Practice").length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-blue-300 text-lg font-semibold mb-3">🏋️ Practice Exercises</h4>
+              <div className="space-y-3">
+                {frontendPriorityImprovements.filter(s => s.priority === "Practice").map((suggestion, index) => (
+                  <div key={index} className="p-4 rounded-lg border-2 bg-blue-500/20 border-blue-500/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-500 text-white">
+                        Practice
+                      </span>
+                      <h4 className="text-white font-semibold">{suggestion.issue}</h4>
+                    </div>
+                    <p className="text-white/90 text-sm mb-2">{suggestion.action}</p>
+                    <p className="text-white/70 text-xs bg-white/10 rounded p-2">
+                      📊 {suggestion.current} → 🎯 {suggestion.target}
+                    </p>
+                    <p className="text-blue-200 text-xs mt-1">{suggestion.impact}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Immediate Actions */}
+          {frontendPriorityImprovements.filter(s => s.priority === "Immediate").length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-purple-300 text-lg font-semibold mb-3">⚡ Immediate Actions</h4>
+              <div className="space-y-3">
+                {frontendPriorityImprovements.filter(s => s.priority === "Immediate").map((suggestion, index) => (
+                  <div key={index} className="p-4 rounded-lg border-2 bg-purple-500/20 border-purple-500/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-1 rounded-full text-xs font-bold bg-purple-500 text-white">
+                        Immediate
+                      </span>
+                      <h4 className="text-white font-semibold">{suggestion.issue}</h4>
+                    </div>
+                    <p className="text-white/90 text-sm mb-2">{suggestion.action}</p>
+                    <p className="text-white/70 text-xs bg-white/10 rounded p-2">
+                      📊 {suggestion.current} → 🎯 {suggestion.target}
+                    </p>
+                    <p className="text-purple-200 text-xs mt-1">{suggestion.impact}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Fallback if no improvements */}
+          {frontendPriorityImprovements.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-white/70 text-lg">No specific improvements needed!</p>
+              <p className="text-white/50 text-sm mt-2">Your speech patterns are within excellent ranges.</p>
+            </div>
+          )}
+        </div>
+
+
+        {/* Enhanced Feedback */}
+        {false && results.enhancedFeedback && typeof results.enhancedFeedback === 'string' && (
+          <div className="mt-6 p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
+            <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">🎯 Personalized Feedback</h3>
+            <div className="p-4 bg-white/5 rounded-lg">
+              <pre className="text-white/90 text-sm whitespace-pre-wrap font-mono">
+                {String(results.enhancedFeedback)}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* Real-time Feedback */}
+        {false && results.realTimeFeedback && typeof results.realTimeFeedback === 'string' && (
+          <div className="mt-6 p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
+            <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">⚡ Real-time Feedback</h3>
+            <div className="p-4 bg-white/5 rounded-lg">
+              <pre className="text-white/90 text-sm whitespace-pre-wrap font-mono">
+                {String(results.realTimeFeedback)}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* Comprehensive Report */}
+        {false && results.comprehensiveReport && typeof results.comprehensiveReport === 'string' && (
+          <div className="mt-6 p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
+            <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">📊 Comprehensive Report</h3>
+            <div className="p-4 bg-white/5 rounded-lg max-h-96 overflow-y-auto">
+              <pre className="text-white/90 text-sm whitespace-pre-wrap font-mono">
+                {String(results.comprehensiveReport)}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* Debug: Show raw data if feedback is not a string */}
+        {false && results.enhancedFeedback && typeof results.enhancedFeedback !== 'string' && (
+          <div className="mt-6 p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
+            <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">🐛 Debug: Enhanced Feedback (Object)</h3>
+            <div className="p-4 bg-white/5 rounded-lg">
+              <pre className="text-white/90 text-sm whitespace-pre-wrap font-mono">
+                {JSON.stringify(results.enhancedFeedback, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {false && results.realTimeFeedback && typeof results.realTimeFeedback !== 'string' && (
+          <div className="mt-6 p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
+            <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">🐛 Debug: Real-time Feedback (Object)</h3>
+            <div className="p-4 bg-white/5 rounded-lg">
+              <pre className="text-white/90 text-sm whitespace-pre-wrap font-mono">
+                {JSON.stringify(results.realTimeFeedback, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {false && results.comprehensiveReport && typeof results.comprehensiveReport !== 'string' && (
+          <div className="mt-6 p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
+            <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">🐛 Debug: Comprehensive Report (Object)</h3>
+            <div className="p-4 bg-white/5 rounded-lg">
+              <pre className="text-white/90 text-sm whitespace-pre-wrap font-mono">
+                {JSON.stringify(results.comprehensiveReport, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
+                    </>
+                  );
+                })()}
               </div>
             )}
 
@@ -1469,7 +2126,7 @@ const PaceManagement = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
                     <h4 className="text-white font-semibold mb-2">🎤 Voice Clarity</h4>
-                    <p className="text-xl text-green-300 font-bold">{(results.voiceQuality?.hnr || 0).toFixed(1)} dB</p>
+                    <p className="text-xl text-green-300 font-bold">{(results.advancedMetrics?.hnr_mean || 0).toFixed(1)} dB</p>
                     <p className="text-white/70 text-sm">Harmonic-to-Noise Ratio</p>
                     <p className="text-white/70 text-sm">Higher = Better Voice Quality</p>
                     <p className="text-white/60 text-xs mt-2">Measures voice clarity and intelligibility</p>
@@ -1477,7 +2134,7 @@ const PaceManagement = () => {
 
                   <div className="p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
                     <h4 className="text-white font-semibold mb-2">🎼 Formant Analysis</h4>
-                    <p className="text-xl text-blue-300 font-bold">{((results.voiceQuality?.formants?.f2 || 0) - (results.voiceQuality?.formants?.f1 || 0)).toFixed(1)} Hz</p>
+                    <p className="text-xl text-blue-300 font-bold">{((results.advancedMetrics?.f2_mean || 0) - (results.advancedMetrics?.f1_mean || 0)).toFixed(1)} Hz</p>
                     <p className="text-white/70 text-sm">F2-F1 Distance</p>
                     <p className="text-white/70 text-sm">Speech Articulation</p>
                     <p className="text-white/60 text-xs mt-2">F1, F2, F3 vowel frequencies for clear speech</p>
@@ -1493,13 +2150,23 @@ const PaceManagement = () => {
                     <BarChart data={[
                       { 
                         metric: "Voice Clarity", 
-                        value: Math.max(0, Math.min(100, (results.voiceQuality?.hnr || 0) * 5)),
+                        value: Math.max(0, Math.min(100, (results.advancedMetrics?.hnr_mean || 0) * 5)),
                         color: "#10b981"
                       },
                       { 
                         metric: "Formant Balance", 
-                        value: Math.max(0, 100 - Math.abs((results.voiceQuality?.formants?.f2 || 0) - (results.voiceQuality?.formants?.f1 || 0)) / 100),
+                        value: Math.max(0, 100 - Math.abs((results.advancedMetrics?.f2_mean || 0) - (results.advancedMetrics?.f1_mean || 0)) / 100),
                         color: "#3b82f6"
+                      },
+                      { 
+                        metric: "Voice Stability", 
+                        value: Math.max(0, 100 - (results.advancedMetrics?.jitter_local || 0) * 1000),
+                        color: "#8b5cf6"
+                      },
+                      { 
+                        metric: "Voice Clarity", 
+                        value: Math.max(0, 100 - (results.advancedMetrics?.shimmer_local || 0) * 100),
+                        color: "#f59e0b"
                       }
                     ]}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#444" />
@@ -1520,10 +2187,22 @@ const PaceManagement = () => {
                     <div className="p-3 bg-white/10 rounded-lg">
                       <h4 className="text-white font-semibold mb-2">🎤 Voice Clarity</h4>
                       <p className="text-white/80 text-sm">Focus on breath support and relaxation techniques to improve voice clarity and reduce vocal tension.</p>
+                      <p className="text-white/60 text-xs mt-2">Current HNR: {(results.advancedMetrics?.hnr_mean || 0).toFixed(1)} dB</p>
                     </div>
                     <div className="p-3 bg-white/10 rounded-lg">
                       <h4 className="text-white font-semibold mb-2">🎯 Articulation</h4>
                       <p className="text-white/80 text-sm">Practice articulation exercises to improve speech clarity and formant balance for better intelligibility.</p>
+                      <p className="text-white/60 text-xs mt-2">F2-F1 Distance: {((results.advancedMetrics?.f2_mean || 0) - (results.advancedMetrics?.f1_mean || 0)).toFixed(1)} Hz</p>
+                    </div>
+                    <div className="p-3 bg-white/10 rounded-lg">
+                      <h4 className="text-white font-semibold mb-2">🎵 Voice Stability</h4>
+                      <p className="text-white/80 text-sm">Work on reducing vocal jitter and shimmer for more stable voice production.</p>
+                      <p className="text-white/60 text-xs mt-2">Jitter: {(results.advancedMetrics?.jitter_local || 0).toFixed(3)}, Shimmer: {(results.advancedMetrics?.shimmer_local || 0).toFixed(3)}</p>
+                    </div>
+                    <div className="p-3 bg-white/10 rounded-lg">
+                      <h4 className="text-white font-semibold mb-2">🎼 Pitch Control</h4>
+                      <p className="text-white/80 text-sm">Maintain consistent pitch throughout your presentation for better vocal variety.</p>
+                      <p className="text-white/60 text-xs mt-2">Pitch Std: {(results.advancedMetrics?.pitch_std || 0).toFixed(1)} Hz</p>
                     </div>
                   </div>
                 </div>
