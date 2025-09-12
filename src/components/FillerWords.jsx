@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { FaComment, FaMicrophone, FaStop, FaPlay, FaPause, FaUpload, FaSave, FaClock, FaChartBar, FaHistory } from "react-icons/fa";
+import { FaComment, FaStop, FaPlay, FaPause, FaClock, FaChartBar } from "react-icons/fa";
 import axios from "axios";
 import image01 from "../assets/images/fillerbg.png";
 
 const FillerWords = () => {
-  const [activeTab, setActiveTab] = useState("record"); // record | saved
+  // Single view; no saved tab
   const [audioBlob, setAudioBlob] = useState(null);
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [audioURL, setAudioURL] = useState(null);
   const [audioDuration, setAudioDuration] = useState(null);
   const [recordedAt, setRecordedAt] = useState(null);
-  const [savedRecs, setSavedRecs] = useState([]);
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [detectedFillers, setDetectedFillers] = useState([]);
+  const recognitionRef = useRef(null);
+  
   
   // Audio recording states (matching PaceManagement)
   const [isRecording, setIsRecording] = useState(false);
@@ -27,9 +30,7 @@ const FillerWords = () => {
   const canvasRef = useRef(null);
   let animationFrameId = useRef(null);
 
-  useEffect(() => {
-    fetchSavedRecordings();
-  }, []);
+  useEffect(() => {}, []);
 
   // Timer effect for recording (matching PaceManagement)
   useEffect(() => {
@@ -63,17 +64,7 @@ const FillerWords = () => {
     }
   }, [isRecording, isPaused]);
 
-  const fetchSavedRecordings = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:3001/api/rec/save", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSavedRecs(res.data);
-    } catch (err) {
-      console.error("Failed to fetch saved recordings", err);
-    }
-  };
+  
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -102,6 +93,29 @@ const FillerWords = () => {
       analyserRef.current.fftSize = 256;
       drawSineWave();
     }
+  };
+
+  // Simple filler-word extraction from transcript text
+  const computeFillerCounts = (text) => {
+    const fillers = [
+      "um", "uh", "erm", "hmm",
+      "like", "you know", "i mean",
+      "sort of", "kind of", "basically",
+      "actually", "literally", "so", "well", "okay", "right"
+    ];
+
+    const normalized = ` ${text.toLowerCase()} `
+      .replace(/\s+/g, " ")
+      .replace(/[.,!?;:()"']/g, " ");
+
+    const details = fillers.map((fw) => {
+      const pattern = new RegExp(` ${fw.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")} `, "g");
+      const matches = normalized.match(pattern);
+      return { word: fw, count: matches ? matches.length : 0 };
+    }).filter((d) => d.count > 0);
+
+    const total = details.reduce((sum, d) => sum + d.count, 0);
+    return { total, details };
   };
 
   const drawSineWave = () => {
@@ -134,6 +148,48 @@ const FillerWords = () => {
     draw();
   };
 
+  // Analyze a Blob by posting directly to FastAPI (no DB save)
+  const analyzeBlob = async (blob) => {
+    const formData = new FormData();
+    formData.append("audio", blob);
+    if (liveTranscript) {
+      formData.append("transcript", liveTranscript);
+    }
+
+    try {
+      setIsLoading(true);
+      const res = await axios.post(
+        "http://localhost:8000/predict-filler-words",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      const data = res.data || {};
+      if (data.error) {
+        console.error("Analysis error:", data.error);
+        alert("Analysis failed: " + data.error);
+        return;
+      }
+
+      setResult({
+        fillerCount: Number.isFinite(data.filler_text_count) ? Number(data.filler_text_count) : (Number.isFinite(data.filler_prediction) ? Number(data.filler_prediction) : 0),
+        detectedFillers: Array.isArray(data.detected_fillers) ? data.detected_fillers : [],
+        message: data.message ?? "",
+        modelLoaded: !!data.modelLoaded,
+        probability: typeof data.filler_probability === "number" ? data.filler_probability : undefined,
+      });
+    } catch (err) {
+      console.error("Analysis request failed", err);
+      alert("Something went wrong during analysis.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Recording functions (matching PaceManagement exactly)
   const handlePlay = async () => {
     if (!isRecording || isPaused) {
@@ -159,7 +215,45 @@ const FillerWords = () => {
             setAudioDuration(recordTime);
             setRecordedAt(new Date());
             setResult(null);
+
+            // Auto-analyze without saving to DB
+            analyzeBlob(audioBlob);
           };
+
+          // Start browser speech recognition (fallback for listing fillers)
+          try {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+              const recognition = new SpeechRecognition();
+              recognition.lang = "en-US";
+              recognition.continuous = true;
+              recognition.interimResults = true;
+              recognition.onresult = (event) => {
+                let transcript = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                  transcript += event.results[i][0].transcript + " ";
+                }
+                setLiveTranscript((prev) => (prev + " " + transcript).trim());
+              };
+              recognition.onerror = () => {};
+              recognition.onend = () => {
+                // Compute fillers from final transcript
+                const { total, details } = computeFillerCounts(liveTranscript);
+                setDetectedFillers(details);
+                // If ML model not loaded, use fallback count
+                setResult((prev) => {
+                  if (!prev) return prev;
+                  if (prev.modelLoaded) return prev;
+                  return {
+                    ...prev,
+                    fillerCount: total,
+                  };
+                });
+              };
+              recognition.start();
+              recognitionRef.current = recognition;
+            }
+          } catch (_) {}
         }
 
         setIsRecording(true);
@@ -194,59 +288,17 @@ const FillerWords = () => {
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       }
+      // Stop speech recognition if running
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (_) {}
+      }
       audioChunksRef.current = [];
     }
   };
 
-  const uploadAudio = async () => {
-    if (!audioBlob) return alert("No audio recorded");
+  // Upload/Analyze button removed; analysis runs automatically on stop
 
-    const formData = new FormData();
-    formData.append("audio", audioBlob);
-
-    try {
-      setIsLoading(true);
-      const token = localStorage.getItem("token");
-
-      const res = await axios.post("http://localhost:3001/api/recording/upload", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      setResult(res.data);
-    } catch (err) {
-      console.error("Upload failed", err);
-      alert("Something went wrong during upload.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const saveRecording = async () => {
-    if (!result || !audioDuration) return alert("No analysis to save");
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        "http://localhost:3001/api/rec/save",
-        {
-          fillerCount: result.fillerCount,
-          duration: audioDuration,
-          date: recordedAt,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      alert("Recording saved successfully!");
-      fetchSavedRecordings();
-    } catch (err) {
-      console.error("Error saving recording", err);
-      alert("Failed to save recording.");
-    }
-  };
+  // Save removed; no persistence required
 
   const formatDateTime = (date) =>
     new Date(date).toLocaleString("en-GB", {
@@ -437,46 +489,7 @@ const FillerWords = () => {
                   }}
                 />
 
-                {/* Action Buttons */}
-                <div
-                  style={{ marginTop: "1rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}
-                >
-                  <button
-                    onClick={uploadAudio}
-                    disabled={!audioBlob || isLoading}
-                    style={{
-                      backgroundColor: "#025838",
-                      color: "white",
-                      padding: "0.6rem 1.2rem",
-                      borderRadius: "0.5rem",
-                      border: "none",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                      opacity: (!audioBlob || isLoading) ? 0.5 : 1,
-                    }}
-                  >
-                    {isLoading ? "⏳ Analyzing..." : "📝 Upload & Analyze"}
-                  </button>
-
-                  {result && (
-                    <button
-                      onClick={saveRecording}
-                      style={{
-                        backgroundColor: "#b79602",
-                        color: "white",
-                        padding: "0.6rem 1.2rem",
-                        borderRadius: "0.5rem",
-                        border: "none",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                        boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                      }}
-                    >
-                      💾 Save Analysis
-                    </button>
-                  )}
-                </div>
+                {/* Analysis triggers automatically on stop; no action buttons */}
               </div>
             )}
 
@@ -600,35 +613,8 @@ const FillerWords = () => {
           
           {/* Right side */}
           <div className="w-full flex flex-col">
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4 overflow-x-auto">
-              {/* Record & Analyze Tab */}
-              <button
-                className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
-                  activeTab === "record"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
-                }`}
-                onClick={() => setActiveTab("record")}
-              >
-                <FaMicrophone />
-                Record & Analyze
-              </button>
+            <div className="mb-4" />
 
-              {/* Saved Recordings Tab */}
-              <button
-                className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
-                  activeTab === "saved"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
-                }`}
-                onClick={() => setActiveTab("saved")}
-              >
-                <FaHistory />
-                Saved Recordings
-              </button>
-            </div>
-
-            {activeTab === "record" && (
               <div className="flex flex-col w-full">
                 <h2 className="text-xl lg:text-2xl font-bold text-white mt-7 mb-4">
                   Filler Word Analysis
@@ -641,68 +627,31 @@ const FillerWords = () => {
                       Analysis Result
                     </h3>
 
-                    {/* Metrics Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                      <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
-                        <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">
-                          Filler Count
-                        </h3>
-                        <div className="flex justify-center items-center rounded-full w-20 h-20 lg:w-24 lg:h-24 xl:w-32 xl:h-32 bg-white/10 text-white text-lg lg:text-xl xl:text-2xl font-semibold">
-                          {result.fillerCount}
-                        </div>
+                    {/* Filler Count - single row */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] text-white">
+                        <span className="text-sm lg:text-lg font-semibold mr-2">Filler Count:</span>
+                        <span className="text-lg lg:text-xl font-bold">{result.fillerCount}</span>
                       </div>
-
-                      {audioDuration && (
-                        <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
-                          <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">
-                            Duration
-                          </h3>
-                          <div className="flex flex-col justify-center items-center rounded-full w-20 h-20 lg:w-24 lg:h-24 xl:w-32 xl:h-32 bg-white/10 text-white text-lg lg:text-xl xl:text-2xl font-semibold">
-                            <FaClock className="text-white text-xl lg:text-2xl mb-1" />
-                            <span>{audioDuration.toFixed(1)}s</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {recordedAt && (
-                        <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
-                          <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">
-                            Recorded
-                          </h3>
-                          <div className="flex flex-col justify-center items-center rounded-full w-20 h-20 lg:w-24 lg:h-24 xl:w-32 xl:h-32 bg-white/10 text-white text-lg lg:text-xl xl:text-2xl font-semibold">
-                            <span className="text-xs text-center">{formatDateTime(recordedAt)}</span>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
-                    {/* Audio Playback */}
-                    {audioURL && (
-                      <div className="mb-6">
-                        <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                          <FaPlay />
-                          Audio Playback
-                        </h4>
-                        <audio
-                          controls
-                          src={audioURL}
-                          className="w-full rounded-lg"
-                          style={{
-                            background: "rgba(255, 255, 255, 0.1)",
-                            backdropFilter: "blur(10px)",
-                          }}
-                        />
+                    {/* Detected filler words from backend (or transcript fallback) */}
+                    {(result?.detectedFillers?.length ? result.detectedFillers : detectedFillers)?.length > 0 && (
+                      <div className="mt-4 bg-white/5 rounded-lg p-4">
+                        <h4 className="text-white font-semibold mb-2">Detected Filler Words</h4>
+                        <ul className="list-disc list-inside text-white/90 text-sm">
+                          {(result?.detectedFillers?.length ? result.detectedFillers : detectedFillers).map((item) => (
+                            <li key={item.word}>
+                              <span className="font-semibold">{item.word}</span>: {item.count}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
 
-                    {/* Save Button */}
-                    <button
-                      onClick={saveRecording}
-                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
-                    >
-                      <FaSave />
-                      Save Analysis
-                    </button>
+                    {/* Debug notice removed */}
+
+                    {/* Save removed */}
                   </div>
                 )}
 
@@ -725,72 +674,6 @@ const FillerWords = () => {
                   </div>
                 )}
               </div>
-            )}
-
-            {activeTab === "saved" && (
-              <div className="flex flex-col w-full h-full">
-                <h2 className="text-xl lg:text-2xl font-bold text-white mt-2 mb-4">
-                  Saved Recordings
-                </h2>
-
-                {savedRecs.length > 0 ? (
-                  <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-xl p-6 border-2 border-white/20 shadow-2xl">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-white/20">
-                            <th className="text-left py-3 px-4 text-[#00ccff] font-semibold">Date & Time</th>
-                            <th className="text-left py-3 px-4 text-[#00ccff] font-semibold">Filler Count</th>
-                            <th className="text-left py-3 px-4 text-[#00ccff] font-semibold">Duration</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {savedRecs.map((rec, index) => (
-                            <tr
-                              key={rec._id}
-                              className="border-b border-white/10 hover:bg-white/5 transition-colors duration-200"
-                            >
-                              <td className="py-3 px-4 text-white/90">{formatDateTime(rec.date)}</td>
-                              <td className="py-3 px-4">
-                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                  rec.fillerCount <= 2 
-                                    ? "bg-green-500/20 text-green-300" 
-                                    : rec.fillerCount <= 5
-                                    ? "bg-yellow-500/20 text-yellow-300"
-                                    : rec.fillerCount <= 10
-                                    ? "bg-orange-500/20 text-orange-300"
-                                    : "bg-red-500/20 text-red-300"
-                                }`}>
-                                  {rec.fillerCount}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-white/90">{rec.duration.toFixed(2)}s</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-xl p-8 border-2 border-white/20 shadow-2xl text-center">
-                    <motion.div
-                      className="w-20 h-20 bg-gradient-to-br from-gray-500 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl"
-                      animate={{ 
-                        scale: [1, 1.1, 1],
-                        opacity: [0.5, 1, 0.5]
-                      }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <FaHistory className="text-white text-2xl" />
-                    </motion.div>
-                    <h3 className="text-[#00ccff] text-xl font-bold mb-2">No Saved Recordings</h3>
-                    <p className="text-white/80">
-                      Record and analyze your speech to see your saved recordings here.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Sticky Animated Square Image - Bottom Right Corner */}
             <motion.div

@@ -141,7 +141,7 @@ const Loudness = () => {
         formData.append("audio", blob, "recording.webm");
 
         try {
-          const res = await axios.post("http://localhost:3001/api/loudness/predict", formData, {
+          const res = await axios.post("http://localhost:3001/predict-loudness", formData, {
             headers: { "Content-Type": "multipart/form-data" },
           });
 
