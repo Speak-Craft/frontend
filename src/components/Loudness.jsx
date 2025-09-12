@@ -36,6 +36,11 @@ const Loudness = () => {
   const mediaStreamRef = useRef(null);
   const sustainedMediaRecorderRef = useRef(null);
   const sustainedChunksRef = useRef([]);
+  const processorRef = useRef(null);
+  const pcmBufferRef = useRef(new Float32Array(0));
+  const sampleRateRef = useRef(16000);
+  const chunkTimerRef = useRef(null);
+  const skipFirstChunkRef = useRef(false);
 
   // Timer effect
   useEffect(() => {
@@ -90,6 +95,67 @@ const Loudness = () => {
     }
   }, [waveform, waveColor]);
 
+  // Convert recorded WebM/MP4 blob to WAV (mono, 16-bit PCM)
+  const blobToWav = async (blob) => {
+    const arrayBuffer = await blob.arrayBuffer();
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+    const length = audioBuffer.length;
+    let channelData;
+    if (audioBuffer.numberOfChannels > 1) {
+      const tmp = new Float32Array(length);
+      for (let c = 0; c < audioBuffer.numberOfChannels; c++) {
+        const data = audioBuffer.getChannelData(c);
+        for (let i = 0; i < length; i++) tmp[i] += data[i];
+      }
+      for (let i = 0; i < length; i++) tmp[i] /= audioBuffer.numberOfChannels;
+      channelData = tmp;
+    } else {
+      channelData = audioBuffer.getChannelData(0);
+    }
+
+    const sampleRate = audioBuffer.sampleRate;
+
+    function floatTo16BitPCM(input) {
+      const buffer = new ArrayBuffer(input.length * 2);
+      const view = new DataView(buffer);
+      let offset = 0;
+      for (let i = 0; i < input.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, input[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      }
+      return buffer;
+    }
+
+    function writeWavHeader(view, sampleRate, numSamples) {
+      function setUint32(offset, value) { view.setUint32(offset, value, true); }
+      function setUint16(offset, value) { view.setUint16(offset, value, true); }
+      const numChannels = 1;
+      const bytesPerSample = 2;
+      setUint32(0, 0x46464952); // "RIFF"
+      setUint32(4, 36 + numSamples * bytesPerSample);
+      setUint32(8, 0x45564157); // "WAVE"
+      setUint32(12, 0x20746d66); // "fmt "
+      setUint32(16, 16);
+      setUint16(20, 1); // PCM
+      setUint16(22, numChannels);
+      setUint32(24, sampleRate);
+      setUint32(28, sampleRate * numChannels * bytesPerSample);
+      setUint16(32, numChannels * bytesPerSample);
+      setUint16(34, 8 * bytesPerSample);
+      setUint32(36, 0x61746164); // "data"
+      setUint32(40, numSamples * bytesPerSample);
+    }
+
+    const pcmBuffer = floatTo16BitPCM(channelData);
+    const wavBuffer = new ArrayBuffer(44 + pcmBuffer.byteLength);
+    const view = new DataView(wavBuffer);
+    writeWavHeader(view, sampleRate, channelData.length);
+    new Uint8Array(wavBuffer, 44).set(new Uint8Array(pcmBuffer));
+    return new Blob([wavBuffer], { type: "audio/wav" });
+  };
+
   // Start real-time audio analysis
   const startAudio = async () => {
     try {
@@ -98,6 +164,7 @@ const Loudness = () => {
 
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
+      sampleRateRef.current = audioContextRef.current.sampleRate || 16000;
 
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 2048;
@@ -127,49 +194,119 @@ const Loudness = () => {
         setWaveform(filteredData);
       }, 100);
 
-      // MediaRecorder setup
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        chunksRef.current.push(e.data);
-      };
-
-      mediaRecorderRef.current.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        chunksRef.current = [];
-
-        const formData = new FormData();
-        formData.append("audio", blob, "recording.webm");
-
-        try {
-          const res = await axios.post("http://localhost:3001/predict-loudness", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-
-          const label = res.data.prediction;
-          setPrediction(label);
-
-          if (label === "Acceptable") setWaveColor("green");
-          else if (label === "Low") setWaveColor("red");
-          else setWaveColor("#3498db");
-        } catch (err) {
-          console.error("Prediction error:", err);
-          setPrediction("Prediction error");
-          setWaveColor("gray");
+      // MediaRecorder setup with proper MIME type handling
+      const options = { mimeType: 'audio/webm;codecs=opus' };
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options.mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          options.mimeType = 'audio/mp4';
+          if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            options.mimeType = '';
+          }
         }
+      }
+      
+      console.log(`🎵 Using MIME type: ${options.mimeType || 'default'}`);
+      
+      mediaRecorderRef.current = new MediaRecorder(stream, options);
+      // Disable MediaRecorder-based uploads; we will stream PCM via ScriptProcessor
+      mediaRecorderRef.current.ondataavailable = () => {};
+      mediaRecorderRef.current.onstop = () => {};
 
-        // Restart recording
-        mediaRecorderRef.current.start();
-        setTimeout(() => mediaRecorderRef.current.stop(), 300);
+      // PCM capture via ScriptProcessor for robust WAV chunks
+      processorRef.current = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+      processorRef.current.onaudioprocess = (ev) => {
+        const input = ev.inputBuffer.getChannelData(0);
+        const oldBuf = pcmBufferRef.current;
+        const merged = new Float32Array(oldBuf.length + input.length);
+        merged.set(oldBuf, 0);
+        merged.set(input, oldBuf.length);
+        pcmBufferRef.current = merged;
+      };
+      sourceRef.current.connect(processorRef.current);
+      processorRef.current.connect(audioContextRef.current.destination);
+
+      // Helper to build WAV from Float32
+      const wavFromFloat32 = (float32, sr) => {
+        const to16 = (input) => {
+          const buffer = new ArrayBuffer(input.length * 2);
+          const view = new DataView(buffer);
+          let offset = 0;
+          for (let i = 0; i < input.length; i++, offset += 2) {
+            let s = Math.max(-1, Math.min(1, input[i]));
+            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+          }
+          return buffer;
+        };
+        const writeHdr = (view, sampleRate, numSamples) => {
+          const set32 = (o, v) => view.setUint32(o, v, true);
+          const set16 = (o, v) => view.setUint16(o, v, true);
+          const numChannels = 1, bps = 2;
+          set32(0, 0x46464952); // RIFF
+          set32(4, 36 + numSamples * bps);
+          set32(8, 0x45564157); // WAVE
+          set32(12, 0x20746d66); // fmt 
+          set32(16, 16);
+          set16(20, 1);
+          set16(22, numChannels);
+          set32(24, sampleRate);
+          set32(28, sampleRate * numChannels * bps);
+          set16(32, numChannels * bps);
+          set16(34, 8 * bps);
+          set32(36, 0x61746164); // data
+          set32(40, numSamples * bps);
+        };
+        const pcm = to16(float32);
+        const wav = new ArrayBuffer(44 + pcm.byteLength);
+        const view = new DataView(wav);
+        writeHdr(view, sr, float32.length);
+        new Uint8Array(wav, 44).set(new Uint8Array(pcm));
+        return new Blob([wav], { type: 'audio/wav' });
       };
 
-      // Start first recording cycle
-      mediaRecorderRef.current.start();
-      setTimeout(() => mediaRecorderRef.current.stop(), 300);
+      // Skip first chunk to avoid startup spike
+      skipFirstChunkRef.current = true;
+      chunkTimerRef.current = setInterval(async () => {
+        const needed = Math.floor(sampleRateRef.current * 3);
+        if (pcmBufferRef.current.length < needed) return;
+        const slice = pcmBufferRef.current.slice(pcmBufferRef.current.length - needed);
+        if (skipFirstChunkRef.current) { skipFirstChunkRef.current = false; return; }
+        const wavBlob = wavFromFloat32(slice, sampleRateRef.current);
+        const formData = new FormData();
+        formData.append('file', wavBlob, 'recording.wav');
+        try {
+          const res = await axios.post('http://localhost:8000/loudness/predict-loudness', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+          const category = res.data.category;
+          setPrediction(category);
+          if (category === 'Acceptable') setWaveColor('green');
+          else if (category === 'Low / Silent') setWaveColor('red');
+          else setWaveColor('#3498db');
+        } catch (err) {
+          console.error('Prediction error:', err);
+          setPrediction('Prediction error');
+          setWaveColor('gray');
+        }
+      }, 3000);
+
+      // Start microphone capture for UI (uploads are driven by PCM interval above)
+      try {
+        mediaRecorderRef.current.start();
+      } catch (error) {
+        console.error("Error starting MediaRecorder:", error);
+        setPrediction("Recording error");
+        setWaveColor("gray");
+      }
 
       // Clean up
       return () => {
         clearInterval(drawInterval);
         audioContextRef.current?.close();
+        if (chunkTimerRef.current) { clearInterval(chunkTimerRef.current); chunkTimerRef.current = null; }
+        if (processorRef.current) {
+          try { sourceRef.current && sourceRef.current.disconnect(processorRef.current); } catch {}
+          try { processorRef.current.disconnect(); } catch {}
+        }
+        pcmBufferRef.current = new Float32Array(0);
       };
     } catch (err) {
       console.error("Microphone error:", err);
@@ -406,14 +543,7 @@ const Loudness = () => {
       });
   };
 
-  const getLoudnessLabel = (prediction) => {
-    switch (prediction) {
-      case "Acceptable": return "Optimal";
-      case "Low": return "Too Quiet";
-      case "High": return "Too Loud";
-      default: return "Analyzing...";
-    }
-  };
+  const getLoudnessLabel = (prediction) => prediction || "Analyzing...";
 
   return (
     <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] p-4 lg:p-8 flex justify-center items-center">
@@ -740,9 +870,9 @@ const Loudness = () => {
                     </h3>
                     <div className={`flex justify-center items-center rounded-full w-20 h-20 lg:w-24 lg:h-24 bg-white/10 text-2xl font-semibold ${
                       prediction === "Acceptable" ? "text-green-400" : 
-                      prediction === "Low" ? "text-red-400" : "text-yellow-400"
+                      prediction === "Low / Silent" ? "text-red-400" : "text-yellow-400"
                     }`}>
-                      {prediction === "Acceptable" ? "✓" : prediction === "Low" ? "↓" : "↑"}
+                      {prediction === "Acceptable" ? "✓" : prediction === "Low / Silent" ? "↓" : "↑"}
                     </div>
                     <p className="text-white/70 text-xs mt-1">{getLoudnessLabel(prediction)}</p>
                   </div>
@@ -776,15 +906,15 @@ const Loudness = () => {
                         className={`h-3 rounded-full transition-all duration-500 ${
                           prediction === "Acceptable"
                             ? "bg-green-400"
-                            : prediction === "Low"
+                            : prediction === "Low / Silent"
                             ? "bg-red-400"
                             : "bg-yellow-400"
                         }`}
-                        style={{ width: prediction === "Acceptable" ? "100%" : prediction === "Low" ? "30%" : "70%" }}
+                        style={{ width: prediction === "Acceptable" ? "100%" : prediction === "Low / Silent" ? "30%" : "70%" }}
                       ></div>
                     </div>
                     <p className="text-white text-sm font-semibold">
-                      {prediction === "Acceptable" ? "Excellent" : prediction === "Low" ? "Poor" : "Good"}
+                      {prediction === "Acceptable" ? "Excellent" : prediction === "Low / Silent" ? "Too Quiet" : "Too Loud"}
                     </p>
                   </div>
                 </div>
@@ -796,7 +926,7 @@ const Loudness = () => {
                     className={`p-4 rounded-xl shadow-lg text-center ${
                       prediction === "Acceptable"
                         ? "bg-green-100 text-green-800"
-                        : prediction === "Low"
+                        : prediction === "Low / Silent"
                         ? "bg-red-100 text-red-800"
                         : "bg-white text-[#003b46]"
                     }`}
@@ -807,7 +937,7 @@ const Loudness = () => {
                     <p className="text-sm mt-2 opacity-75">
                       {prediction === "Acceptable" 
                         ? "Your volume is optimal for clear communication"
-                        : prediction === "Low"
+                        : prediction === "Low / Silent"
                         ? "Consider increasing your speaking volume"
                         : "Volume level is being analyzed..."}
                     </p>
@@ -847,16 +977,16 @@ const Loudness = () => {
                       <button
                         onClick={startSustainedRecording}
                         disabled={isSustainedRecording}
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ color: 'white' }}
+                        className="text-white px-4 py-2 rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                        style={{ color: 'white', backgroundColor: '#16a34a', border: '1px solid rgba(0,0,0,0.1)' }}
                       >
                         Start
                       </button>
                       <button
                         onClick={stopSustainedRecording}
                         disabled={!isSustainedRecording}
-                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ color: 'white' }}
+                        className="text-white px-4 py-2 rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                        style={{ color: 'white', backgroundColor: '#ef4444', border: '1px solid rgba(0,0,0,0.1)' }}
                       >
                         Stop
                       </button>

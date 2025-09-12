@@ -4,6 +4,7 @@ import Sidebar from "./components/Sidebar";
 import Present from "./components/Present";
 import PaceManagement from "./components/PaceManagement";
 import PaceManagementHome from "./components/PaceManagementHome";
+import PaceManagementActivity from "./components/PaceManagementActivity";
 import FillerWords from "./components/FillerWords";
 import Loudness from "./components/Loudness";
 import EmotionAnalysis from "./components/EmotionAnalysis";
@@ -43,6 +44,7 @@ const App = () => {
                     <Route path="present" element={<Present />} />
                     <Route path="pace-management-landing" element={<PaceManagementHome />} />
                     <Route path="pace-management" element={<PaceManagement />} />
+                    <Route path="pace-management-activities" element={<PaceManagementActivity />} />
                     <Route path="filler-words-landing" element={<FillerWordsDetectionHome />} />
                     <Route path="filler-words-detection" element={<FillerWords />} />
                     <Route path="loudness-variation-landing" element={<LoudnessVariationLanding />} />
