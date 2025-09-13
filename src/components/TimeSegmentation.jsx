@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
+import timeSegVideo from "../assets/video/time-segmentation-video.mp4";
 
 const TimeSegmentation = () => {
   const [file, setFile] = useState(null);
@@ -99,6 +100,21 @@ const TimeSegmentation = () => {
             <div className="mb-4">
               <h2 className="text-2xl font-bold">📑 Presentation Time Segmentation</h2>
               <p className="text-white/70 text-sm mt-1">Upload your slides and get an AI-assisted time allocation per topic.</p>
+            </div>
+
+            {/* Landscape demo video */}
+            <div className="mb-4">
+              <div className="relative w-full rounded-xl overflow-hidden border-2 border-white/15 shadow-lg" style={{ aspectRatio: "16 / 9" }}>
+                <video
+                  src={timeSegVideo}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                />
+              </div>
             </div>
 
             <div className="space-y-4">
