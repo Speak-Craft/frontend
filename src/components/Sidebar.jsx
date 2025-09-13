@@ -17,7 +17,8 @@ const Sidebar = () => {
     { name: "Pace Management", icon: <FaPause className="text-xl" />, path: "/pace-management-landing" },
     { name: "Filler Words", icon: <FaMicrophone className="text-xl" />, path: "/filler-words-landing" },
     { name: "Loudness Variation", icon: <FaChartLine className="text-xl" />, path: "/loudness-variation-landing" },
-    { name: "Topic generator", icon: <FaChartLine className="text-xl" />, path: "/topic-generator" }
+    { name: "Topic generator", icon: <FaChartLine className="text-xl" />, path: "/topic-generator" },
+    { name: "Time Segmentation", icon: <FaChartLine className="text-xl" />, path: "/time-segmentation" }
 
   ];
 

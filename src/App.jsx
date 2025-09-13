@@ -16,6 +16,7 @@ import FillerWordsDetectionHome from "./components/FillerWordsDetectionHome";
 import LoudnessVariationLanding from "./components/LoudnessVariationLanding";
 import LoudnessActivities from "./components/LoudnessActivities";
 import TopicGenerator from "./components/TopicGenerator";
+import TimeSegmentation from "./components/TimeSegmentation";
 
 const App = () => {
   return (
@@ -53,6 +54,7 @@ const App = () => {
                     <Route path="loudness-activities" element={<LoudnessActivities />} />
                     <Route path="emotion-analysis" element={<EmotionAnalysis />} />
                     <Route path="topic-generator" element={<TopicGenerator />} />
+                    <Route path="time-segmentation" element={<TimeSegmentation />} />
                   </Routes>
                 </div>
               </div>
