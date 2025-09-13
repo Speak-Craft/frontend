@@ -31,11 +31,14 @@ const Loudness = () => {
   const audioContextRef = useRef(null);
   const sourceRef = useRef(null);
   const analyserRef = useRef(null);
-  const dataArrayRef = useRef(null);
+  const floatDataArrayRef = useRef(null); // For getFloatTimeDomainData
+  const byteDataArrayRef = useRef(null); // For getByteTimeDomainData
   const animationFrameRef = useRef(null);
+  const isLiveRef = useRef(false);
   const mediaStreamRef = useRef(null);
   const sustainedMediaRecorderRef = useRef(null);
   const sustainedChunksRef = useRef([]);
+  const sustainedStreamRef = useRef(null);
   const processorRef = useRef(null);
   const pcmBufferRef = useRef(new Float32Array(0));
   const sampleRateRef = useRef(16000);
@@ -64,6 +67,10 @@ const Loudness = () => {
     return () => {
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (sustainedStreamRef.current) {
+        sustainedStreamRef.current.getTracks().forEach((track) => track.stop());
+        sustainedStreamRef.current = null;
       }
       if (audioContextRef.current) {
         audioContextRef.current.close();
@@ -169,23 +176,23 @@ const Loudness = () => {
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 2048;
       const bufferLength = analyserRef.current.fftSize;
-      dataArrayRef.current = new Float32Array(bufferLength);
+      floatDataArrayRef.current = new Float32Array(bufferLength);
 
       sourceRef.current.connect(analyserRef.current);
 
       // Repeatedly get waveform data and update state
       const drawInterval = setInterval(() => {
-        analyserRef.current.getFloatTimeDomainData(dataArrayRef.current);
+        analyserRef.current.getFloatTimeDomainData(floatDataArrayRef.current);
 
         // Convert to absolute average values for smooth waveform
         const samples = 200;
-        const blockSize = Math.floor(dataArrayRef.current.length / samples);
+        const blockSize = Math.floor(floatDataArrayRef.current.length / samples);
         const filteredData = [];
 
         for (let i = 0; i < samples; i++) {
           let sum = 0;
           for (let j = 0; j < blockSize; j++) {
-            const val = dataArrayRef.current[i * blockSize + j];
+            const val = floatDataArrayRef.current[i * blockSize + j];
             sum += Math.abs(val);
           }
           filteredData.push(sum / blockSize);
@@ -353,6 +360,7 @@ const Loudness = () => {
   const startSustainedRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      sustainedStreamRef.current = stream;
       
       // Start live waveform
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -367,7 +375,8 @@ const Loudness = () => {
 
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
-      dataArrayRef.current = dataArray;
+      byteDataArrayRef.current = dataArray;
+      isLiveRef.current = true;
       setIsLive(true);
       drawLiveWaveform();
 
@@ -398,11 +407,17 @@ const Loudness = () => {
       sustainedMediaRecorderRef.current.stop();
       setIsSustainedRecording(false);
       stopLiveWaveform();
+      if (sustainedStreamRef.current) {
+        sustainedStreamRef.current.getTracks().forEach((track) => track.stop());
+        sustainedStreamRef.current = null;
+      }
+      sustainedMediaRecorderRef.current = null;
     }
   };
 
   const startLiveWaveform = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    sustainedStreamRef.current = stream;
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const analyser = audioContext.createAnalyser();
     const source = audioContext.createMediaStreamSource(stream);
@@ -415,27 +430,36 @@ const Loudness = () => {
 
     audioContextRef.current = audioContext;
     analyserRef.current = analyser;
-    dataArrayRef.current = dataArray;
+    byteDataArrayRef.current = dataArray;
+    isLiveRef.current = true;
     setIsLive(true);
     drawLiveWaveform();
   };
 
   const stopLiveWaveform = () => {
+    isLiveRef.current = false;
     setIsLive(false);
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     audioContextRef.current?.close();
   };
 
   const drawLiveWaveform = () => {
-    if (!isLive) return;
+    if (!isLiveRef.current) return;
     const canvas = liveCanvasRef.current;
-    const ctx = canvas.getContext("2d");
     const analyser = analyserRef.current;
-    const dataArray = dataArrayRef.current;
+    const dataArray = byteDataArrayRef.current;
 
+    // If not ready yet, try again next frame
+    if (!canvas || !analyser || !dataArray) {
+      animationFrameRef.current = requestAnimationFrame(drawLiveWaveform);
+      return;
+    }
+
+    const ctx = canvas.getContext("2d");
     animationFrameRef.current = requestAnimationFrame(drawLiveWaveform);
-
     analyser.getByteTimeDomainData(dataArray);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 

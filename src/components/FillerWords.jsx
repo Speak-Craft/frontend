@@ -179,7 +179,8 @@ const FillerWords = () => {
         fillerCount: Number.isFinite(data.filler_text_count) ? Number(data.filler_text_count) : (Number.isFinite(data.filler_prediction) ? Number(data.filler_prediction) : 0),
         detectedFillers: Array.isArray(data.detected_fillers) ? data.detected_fillers : [],
         message: data.message ?? "",
-        modelLoaded: !!data.modelLoaded,
+        // Force true so transcript fallback doesn't override model output
+        modelLoaded: true,
         probability: typeof data.filler_probability === "number" ? data.filler_probability : undefined,
       });
     } catch (err) {
@@ -195,6 +196,12 @@ const FillerWords = () => {
     if (!isRecording || isPaused) {
       try {
         if (!isRecording) {
+          // Reset analysis section for a new recording session
+          setResult(null);
+          setDetectedFillers([]);
+          setLiveTranscript("");
+          setAudioURL(null);
+          setAudioBlob(null);
           const stream = await navigator.mediaDevices.getUserMedia({
             audio: true,
           });
@@ -214,7 +221,6 @@ const FillerWords = () => {
             setAudioBlob(audioBlob);
             setAudioDuration(recordTime);
             setRecordedAt(new Date());
-            setResult(null);
 
             // Auto-analyze without saving to DB
             analyzeBlob(audioBlob);
@@ -262,7 +268,8 @@ const FillerWords = () => {
         if (mediaRecorderRef.current.state === "paused") {
           mediaRecorderRef.current.resume();
         } else if (mediaRecorderRef.current.state === "inactive") {
-          mediaRecorderRef.current.start();
+          // Use timeslice to ensure ondataavailable fires periodically so we can analyze on pause
+          mediaRecorderRef.current.start(1000);
         }
         drawSineWave();
       } catch (error) {
@@ -275,6 +282,16 @@ const FillerWords = () => {
     if (mediaRecorderRef.current && isRecording && !isPaused) {
       setIsPaused(true);
       mediaRecorderRef.current.pause();
+      // Update detected fillers from current transcript snapshot
+      const { details } = computeFillerCounts(liveTranscript || "");
+      setDetectedFillers(details);
+      // Analyze current accumulated audio without stopping entirely
+      try {
+        const partialBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+        if (partialBlob && partialBlob.size > 0) {
+          analyzeBlob(partialBlob);
+        }
+      } catch (_) {}
     }
   };
 

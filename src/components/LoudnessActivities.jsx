@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaMicrophone, FaStop, FaPlay, FaPause, FaClock, FaChartBar, FaTrophy, FaGamepad, FaMedal, FaRocket, FaBullseye, FaVolumeUp, FaCheckCircle, FaSave, FaHistory } from "react-icons/fa";
 import axios from "axios";
+import * as faceapi from "face-api.js";
 
 const LoudnessActivities = () => {
   const [activeTab, setActiveTab] = useState("game");
@@ -24,6 +25,7 @@ const LoudnessActivities = () => {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [liveDuration, setLiveDuration] = useState(0);
   const [percentage, setPercentage] = useState(0);
+  const [distanceOK, setDistanceOK] = useState(false);
 
   // Past exercises states
   const [exercises, setExercises] = useState([]);
@@ -38,6 +40,7 @@ const LoudnessActivities = () => {
   const dataArrayRef = useRef(null);
   const timerRef = useRef(null);
   const micIntervalRef = useRef(null);
+  const videoRef = useRef(null);
 
   const token = localStorage.getItem("token");
 
@@ -61,6 +64,62 @@ const LoudnessActivities = () => {
   // Fetch scores on component mount
   useEffect(() => {
     fetchScores();
+  }, []);
+
+  // Load face-api models (for distance detection)
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+      } catch (err) {
+        // silently fail if models not available
+        // console.error("face-api model load error:", err);
+      }
+    };
+    loadModels();
+  }, []);
+
+  // Start webcam and check face distance periodically
+  useEffect(() => {
+    let checkDistance;
+    const startCam = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (err) {
+        // console.error("Webcam access error:", err);
+      }
+    };
+    startCam();
+
+    checkDistance = setInterval(async () => {
+      if (videoRef.current && faceapi.nets.tinyFaceDetector.params) {
+        try {
+          const detection = await faceapi.detectSingleFace(
+            videoRef.current,
+            new faceapi.TinyFaceDetectorOptions()
+          );
+          if (detection) {
+            const faceWidth = detection.box.width;
+            if (faceWidth > 150 && faceWidth < 250) {
+              setDistanceOK(true);
+            } else {
+              setDistanceOK(false);
+            }
+          } else {
+            setDistanceOK(false);
+          }
+        } catch {
+          // ignore detection errors
+        }
+      }
+    }, 1000);
+
+    return () => {
+      if (checkDistance) clearInterval(checkDistance);
+    };
   }, []);
 
   // Start microphone listener for exercises
@@ -88,7 +147,7 @@ const LoudnessActivities = () => {
           setRmsValues((prev) => [...prev, rms]);
 
           // If an exercise is active, update live stats
-          if (exercise && !exercise.completed) {
+          if (exercise && !exercise.completed && distanceOK) {
             const threshold = getThreshold(exercise.level);
             if (rms >= threshold) {
               setLiveDuration((d) => d + 0.3);
@@ -102,7 +161,7 @@ const LoudnessActivities = () => {
 
     startMic();
     return () => clearInterval(micIntervalRef.current);
-  }, [exercise]);
+  }, [exercise, distanceOK]);
 
   // Timer for exercises
   useEffect(() => {
@@ -120,14 +179,14 @@ const LoudnessActivities = () => {
       const pct = (liveDuration / timeElapsed) * 100;
       setPercentage(pct);
 
-      if (liveDuration >= 20 && pct >= 20) {
+      if (liveDuration >= 20 && pct >= 20 && distanceOK) {
         // Mark as completed locally
         setExercise((prev) => ({ ...prev, completed: true }));
         setStatus("✅ Completed!");
         clearInterval(timerRef.current);
       }
     }
-  }, [liveDuration, timeElapsed, exercise]);
+  }, [liveDuration, timeElapsed, exercise, distanceOK]);
 
   // Fetch past exercises
   useEffect(() => {
@@ -191,14 +250,15 @@ const LoudnessActivities = () => {
         chunksRef.current = [];
 
         const formData = new FormData();
-        formData.append("audio", blob, "audio.webm");
+        formData.append("file", blob, "audio.webm");
 
         try {
           const res = await axios.post(
-            "http://localhost:3001/api/loudness/predict",
-            formData
+            "http://localhost:8000/loudness/predict-loudness",
+            formData,
+            { headers: { "Content-Type": "multipart/form-data" } }
           );
-          const loudnessLabel = res.data.prediction;
+          const loudnessLabel = res.data?.category;
 
           if (loudnessLabel === "Acceptable") {
             setPosition((prev) => {
@@ -293,7 +353,7 @@ const LoudnessActivities = () => {
     try {
       const res = await axios.post(
         "http://localhost:3001/api/exercises/loudness/update",
-        { rmsValues },
+        { rmsValues, duration: timeElapsed, completed: true, exerciseId: exercise?._id },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       setExercise(res.data);
@@ -742,6 +802,21 @@ const LoudnessActivities = () => {
                     Complete structured exercises to improve your loudness control. 
                     The system will track your progress and help you develop better vocal dynamics.
                   </p>
+
+                  {/* Webcam for distance check */}
+                  <div className="mb-4 flex flex-col items-center">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      muted
+                      width="320"
+                      height="240"
+                      className="rounded-lg border mb-2"
+                    />
+                    <p className={distanceOK ? "text-green-400" : "text-red-400"}>
+                      {distanceOK ? "✅ Correct distance (1m–2m)" : "⚠️ Move ahead"}
+                    </p>
+                  </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white/10 p-4 rounded-lg">
