@@ -41,6 +41,7 @@ const LoudnessActivities = () => {
   const timerRef = useRef(null);
   const micIntervalRef = useRef(null);
   const videoRef = useRef(null);
+  const videoStreamRef = useRef(null);
 
   const token = localStorage.getItem("token");
 
@@ -79,48 +80,70 @@ const LoudnessActivities = () => {
     loadModels();
   }, []);
 
-  // Start webcam and check face distance periodically
+  // Camera helpers
+  const openCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      videoStreamRef.current = stream;
+    } catch (err) {
+      // silently ignore
+    }
+  };
+
+  const closeCamera = () => {
+    try {
+      const stream = videoStreamRef.current || (videoRef.current && videoRef.current.srcObject);
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      videoStreamRef.current = null;
+      setDistanceOK(false);
+    } catch (_) {
+      // ignore
+    }
+  };
+
+  // Open camera only during exercise; also run distance checks then
   useEffect(() => {
     let checkDistance;
-    const startCam = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (err) {
-        // console.error("Webcam access error:", err);
-      }
-    };
-    startCam();
-
-    checkDistance = setInterval(async () => {
-      if (videoRef.current && faceapi.nets.tinyFaceDetector.params) {
-        try {
-          const detection = await faceapi.detectSingleFace(
-            videoRef.current,
-            new faceapi.TinyFaceDetectorOptions()
-          );
-          if (detection) {
-            const faceWidth = detection.box.width;
-            if (faceWidth > 150 && faceWidth < 250) {
-              setDistanceOK(true);
+    if (exercise) {
+      openCamera();
+      checkDistance = setInterval(async () => {
+        if (videoRef.current && faceapi.nets.tinyFaceDetector.params) {
+          try {
+            const detection = await faceapi.detectSingleFace(
+              videoRef.current,
+              new faceapi.TinyFaceDetectorOptions()
+            );
+            if (detection) {
+              const faceWidth = detection.box.width;
+              if (faceWidth > 150 && faceWidth < 250) {
+                setDistanceOK(true);
+              } else {
+                setDistanceOK(false);
+              }
             } else {
               setDistanceOK(false);
             }
-          } else {
-            setDistanceOK(false);
+          } catch {
+            // ignore detection errors
           }
-        } catch {
-          // ignore detection errors
         }
-      }
-    }, 1000);
-
+      }, 1000);
+    }
     return () => {
       if (checkDistance) clearInterval(checkDistance);
+      if (!exercise) return; // avoid double-close on mount
+      closeCamera();
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercise]);
 
   // Start microphone listener for exercises
   useEffect(() => {
@@ -347,6 +370,7 @@ const LoudnessActivities = () => {
     setRmsValues([]);
     setPercentage(0);
     clearInterval(timerRef.current);
+    closeCamera();
   };
 
   const updateProgress = async () => {
@@ -455,7 +479,7 @@ const LoudnessActivities = () => {
                   <motion.button
                     onClick={startGame}
                     disabled={isRunning || hasWon}
-                    className="bg-green-500 hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
+                    className="bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-black px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -468,7 +492,7 @@ const LoudnessActivities = () => {
                       setMessage("Game stopped. Click Start to try again.");
                     }}
                     disabled={!isRunning}
-                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
+                    className="bg-red-400 hover:bg-red-500 text-black border border-white disabled:bg-gray-500 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -495,7 +519,7 @@ const LoudnessActivities = () => {
                 {!exercise && (
                   <motion.button
                     onClick={startExercise}
-                    className="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-2xl shadow-md font-semibold text-lg w-full flex items-center justify-center gap-2"
+                    className="bg-yellow-400 hover:bg-yellow-500 text-black px-6 py-3 rounded-2xl shadow-md font-semibold text-lg w-full flex items-center justify-center gap-2"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -550,7 +574,7 @@ const LoudnessActivities = () => {
                       {!exercise.completed && (
                         <motion.button
                           onClick={stopExercise}
-                          className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-lg font-medium shadow-md flex items-center gap-2"
+                          className="bg-red-400 hover:bg-red-500 text-black border border-white px-5 py-2 rounded-lg font-medium shadow-md flex items-center gap-2"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
@@ -562,7 +586,7 @@ const LoudnessActivities = () => {
                       {exercise.completed && (
                         <motion.button
                           onClick={updateProgress}
-                          className="bg-green-500 hover:bg-green-600 px-5 py-2 rounded-lg font-medium shadow-md flex items-center gap-2"
+                          className="bg-emerald-400 hover:bg-emerald-500 text-black px-5 py-2 rounded-lg font-medium shadow-md flex items-center gap-2"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
