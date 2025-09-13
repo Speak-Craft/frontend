@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaCamera, FaClock, FaMicrophone, FaChartLine, FaFileAlt, FaPause } from "react-icons/fa";
+import { FaCamera, FaClock, FaMicrophone, FaChartLine, FaPause, FaQuestion, FaList } from "react-icons/fa";
 import { BiSolidVideoRecording } from "react-icons/bi";
 import { MdDashboardCustomize, MdCoPresent } from "react-icons/md";
 import logo from "../assets/images/logo.png"; // Replace with actual path
@@ -9,7 +9,7 @@ import MenuHeader from "./MenuHeader";
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeItem, setActiveItem] = useState(location.pathname);
+  
 
   const menuItems = [
     { name: "Dashboard", icon: <MdDashboardCustomize className="text-xl" />, path: "/dashboard" },
@@ -17,13 +17,43 @@ const Sidebar = () => {
     { name: "Pace Management", icon: <FaPause className="text-xl" />, path: "/pace-management-landing" },
     { name: "Filler Words", icon: <FaMicrophone className="text-xl" />, path: "/filler-words-landing" },
     { name: "Loudness Variation", icon: <FaChartLine className="text-xl" />, path: "/loudness-variation-landing" },
-    { name: "Topic generator", icon: <FaChartLine className="text-xl" />, path: "/topic-generator" },
-    { name: "Time Segmentation", icon: <FaChartLine className="text-xl" />, path: "/time-segmentation" }
+    { name: "Topic generator", icon: <FaList className="text-xl" />, path: "/topic-generator" },
+    { name: "Time Segmentation", icon: <FaClock className="text-xl" />, path: "/time-segmentation" },
+    { name: "Question Generator", icon: <FaQuestion className="text-xl" />, path: "/question-generation" }
+
 
   ];
 
+  const isActive = (itemPath) => {
+    const current = location.pathname;
+    if (itemPath === "/pace-management-landing") {
+      const activePaths = [
+        "/pace-management-landing",
+        "/pace-management",
+        "/pace-management-activities",
+      ];
+      return activePaths.some((p) => current.startsWith(p));
+    }
+    if (itemPath === "/filler-words-landing") {
+      const activePaths = [
+        "/filler-words-landing",
+        "/filler-words-detection",
+        "/filler-words-activities",
+      ];
+      return activePaths.some((p) => current.startsWith(p));
+    }
+    if (itemPath === "/loudness-variation-landing") {
+      const activePaths = [
+        "/loudness-variation-landing",
+        "/loudness-practice",
+        "/loudness-activities",
+      ];
+      return activePaths.some((p) => current.startsWith(p));
+    }
+    return current === itemPath;
+  };
+
   const handleNavigation = (path) => {
-    setActiveItem(path);
     navigate(path);
   };
 
@@ -39,7 +69,7 @@ const Sidebar = () => {
             <li
               key={item.path}
               className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg transition ${
-                activeItem === item.path
+                isActive(item.path)
                   ? "bg-[#0084a6] text-white" // Active state
                   : "hover:bg-[#00a8cc] dark:hover:bg-[#005f6b] dark:hover:text-[#00a8cc]"
               }`}
