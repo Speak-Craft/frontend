@@ -16,7 +16,9 @@ const Sidebar = () => {
     { name: "Face Detection", icon: <FaCamera className="text-xl" />, path: "/face-detection" },
     { name: "Pace Management", icon: <FaPause className="text-xl" />, path: "/pace-management-landing" },
     { name: "Filler Words", icon: <FaMicrophone className="text-xl" />, path: "/filler-words-landing" },
-    { name: "Loudness Variation", icon: <FaChartLine className="text-xl" />, path: "/loudness-variation-landing" }
+    { name: "Loudness Variation", icon: <FaChartLine className="text-xl" />, path: "/loudness-variation-landing" },
+    { name: "Topic generator", icon: <FaChartLine className="text-xl" />, path: "/topic-generator" }
+
   ];
 
   const handleNavigation = (path) => {
