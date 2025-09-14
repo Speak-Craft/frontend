@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { FaTachometerAlt, FaClock, FaPause, FaMicrophone, FaChartLine, FaBrain, FaBullseye, FaTrophy, FaRocket, FaPlay, FaUsers, FaStar, FaArrowRight, FaCheckCircle, FaLightbulb, FaEye, FaCog, FaChartBar, FaVolumeUp, FaCrosshairs, FaAward } from 'react-icons/fa';
 import pace1 from '../assets/images/pace1.png';
 import pace2 from '../assets/images/pace2.png';
+import topicVideo from "../assets/video/pace.mp4";
 
 const PaceManagementHome = () => {
   return (
@@ -410,12 +411,24 @@ const PaceManagementHome = () => {
               {/* Video Section */}
               <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-2xl p-4 border border-white/20">
                 <h3 className="text-[#00ccff] font-bold text-lg mb-3">How It Works</h3>
-                <div className="bg-gray-800/50 rounded-xl p-6 border-2 border-dashed border-gray-600 flex flex-col items-center justify-center min-h-[180px]">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#00d4aa] to-[#00b894] rounded-full flex items-center justify-center mb-3">
-                    <FaPlay className="text-white text-lg ml-1" />
+                <div className="relative rounded-xl overflow-hidden shadow-lg">
+                  <video 
+                    className="w-full h-auto rounded-xl"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    preload="metadata"
+                  >
+                    <source src={topicVideo} type="video/mp4" />
+                    <source src={topicVideo} type="video/quicktime" />
+                    Your browser does not support the video tag.
+                  </video>
+                  <div className="absolute inset-0 bg-black/20 hover:bg-black/10 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#00d4aa] to-[#00b894] rounded-full flex items-center justify-center">
+                      <FaPlay className="text-white text-xl ml-1" />
+                    </div>
                   </div>
-                  <p className="text-gray-400 text-sm text-center">Video demonstration coming soon</p>
-                  <p className="text-gray-500 text-xs text-center mt-1">Learn how our AI analyzes speech pace in real-time</p>
                 </div>
               </div>
 

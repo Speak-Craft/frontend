@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
-import demoVideo from "../assets/video/topic-generation-video.mp4";
+import demoVideo from "../assets/video/question-generator-video.mp4";
 
 const QuestionGeneration = () => {
   const [file, setFile] = useState(null);

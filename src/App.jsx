@@ -17,7 +17,7 @@ import LoudnessVariationLanding from "./components/LoudnessVariationLanding";
 import LoudnessActivities from "./components/LoudnessActivities";
 import TopicGenerator from "./components/TopicGenerator";
 import TimeSegmentation from "./components/TimeSegmentation";
-import FillerWordsActivity from "./components/FillerWordsActivity";
+import FillerWordActivity from "./components/FillerWordActivity";
 import QuestionGeneration from "./components/QuestionGeneration";
 
 const App = () => {
@@ -57,7 +57,7 @@ const App = () => {
                     <Route path="emotion-analysis" element={<EmotionAnalysis />} />
                     <Route path="topic-generator" element={<TopicGenerator />} />
                     <Route path="time-segmentation" element={<TimeSegmentation />} />
-                    <Route path="filler-words-activities" element={<FillerWordsActivity />} />
+                    <Route path="filler-words-activities" element={<FillerWordActivity />} />
                     <Route path="question-generation" element={<QuestionGeneration />} />
                   </Routes>
                 </div>

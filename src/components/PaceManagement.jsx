@@ -28,6 +28,21 @@ import * as htmlToImage from "html-to-image";
 
 import image01 from "../assets/images/pacebg.png";
 
+// Add CSS for spinning animation
+const spinKeyframes = `
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+// Inject the CSS
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = spinKeyframes;
+  document.head.appendChild(style);
+}
+
 // Industry-Standard Pause Values (Toastmasters/Presentations)
 const MICRO_PAUSE = 0.1;      // Breathing, emphasis (0.1-0.3s)
 const SHORT_PAUSE = 0.3;      // Natural flow, comma pauses (0.3-1.0s)
@@ -207,6 +222,8 @@ const PaceManagement = () => {
 
 
   const [recordTime, setRecordTime] = useState(0);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [showReportPreview, setShowReportPreview] = useState(false);
 
   useEffect(() => {
     let timer;
@@ -431,16 +448,24 @@ const PaceManagement = () => {
           priorityImprovements = [];
         }
 
-        // Calculate label in frontend for accuracy
-        // Note: Backend now calculates WPM based on actual speaking time (excluding pauses)
+        // Determine display label: ALWAYS use backend model prediction first, then fallback
+        // The backend model is the authoritative source for predictions
+        const backendLabel = rateData.modelPrediction || rateData.prediction;
         const frontendCalculatedLabel = getWpmLabel(rateData.wpm || 0);
-        console.log(`Frontend calculated label for ${rateData.wpm} WPM: ${frontendCalculatedLabel}`);
         
-        // Get feedback from backend using frontend-calculated label
+        // Use backend prediction if available, otherwise fallback to frontend calculation
+        const finalLabel = backendLabel || frontendCalculatedLabel;
+        
+        console.log(`Display label for ${rateData.wpm} WPM:`);
+        console.log(`  Backend model prediction: ${backendLabel || 'Not available'}`);
+        console.log(`  Frontend calculated: ${frontendCalculatedLabel}`);
+        console.log(`  Final label used: ${finalLabel}`);
+        
+        // Get feedback from backend using the final determined label (backend prediction preferred)
         let backendRateFeedback = null;
         const requestData = {
           wpm: rateData.wpm || 0,
-          label: frontendCalculatedLabel,
+          label: finalLabel, // Use the final determined label (backend preferred)
           consistencyScore: rateData.consistencyScore || 0,
           pacingCurve: rateData.pacingCurve || [],
           duration: rateData.duration || 0,
@@ -491,7 +516,7 @@ const PaceManagement = () => {
           console.log("Using frontend fallback feedback");
           frontendRateFeedback = generateFrontendFeedback(
             rateData.wpm || 0,
-            frontendCalculatedLabel,
+            finalLabel, // Use the final determined label
             rateData.consistencyScore || 0,
             rateData.pacingCurve || [],
             rateData.duration || 0,
@@ -507,12 +532,12 @@ const PaceManagement = () => {
           wordCount: rateData.wordCount || 0,
           duration: rateData.duration || 0,
           wpm: rateData.wpm || 0,
-          prediction: frontendCalculatedLabel, // Frontend-calculated label for accuracy
+          prediction: finalLabel, // Use final determined label (backend preferred)
           consistencyScore: rateData.consistencyScore || 0,
           pacingCurve: rateData.pacingCurve || [],
           voiceQuality: rateData.voiceQuality || {},
           rateEnhancedFeedback: frontendRateFeedback, // Use frontend-calculated feedback
-          modelPrediction: rateData.modelPrediction || rateData.prediction || "", // Store backend prediction for reference
+          modelPrediction: backendLabel || "", // Store backend prediction for reference
           
           // Frontend-calculated pause analysis results
           pausePrediction: pauseData.pauseAnalysis?.prediction || "Analyzing...", // Pause model prediction
@@ -560,6 +585,7 @@ const PaceManagement = () => {
   };
 
   // Frontend WPM label calculation (using exact same logic as model training)
+  // Backend model was trained with: <100=Slow, 100-150=Ideal, >150=Fast
   const getWpmLabel = (wpm) => {
     if (wpm < 100) return "Slow";
     if (wpm <= 150) return "Ideal";
@@ -751,34 +777,423 @@ const PaceManagement = () => {
 
 
   const downloadPDFReport = () => {
-    const node = document.getElementById("pdf-report");
+    if (isGeneratingReport) return;
+    setIsGeneratingReport(true);
+    
+    try {
+      generateProfessionalReport();
+      // Show success message after a short delay
+      setTimeout(() => {
+        setIsGeneratingReport(false);
+        // You could add a toast notification here
+        console.log("✅ Professional report generated successfully!");
+      }, 1000);
+    } catch (error) {
+      setIsGeneratingReport(false);
+      console.error("❌ Report generation failed:", error);
+    }
+  };
 
-    const fallbackColor = (style) => {
-      const el = document.createElement("div");
-      el.style.color = style;
-      return getComputedStyle(el).color || "#000";
+  const generateProfessionalReport = () => {
+        const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    let yPosition = 20;
+
+    // Helper function to add text with auto-wrap
+    const addText = (text, x, y, maxWidth, fontSize = 10, color = [0, 0, 0]) => {
+      pdf.setFontSize(fontSize);
+      pdf.setTextColor(color[0], color[1], color[2]);
+      const lines = pdf.splitTextToSize(text, maxWidth);
+      pdf.text(lines, x, y);
+      return y + (lines.length * (fontSize * 0.35));
     };
 
-    htmlToImage
-      .toPng(node, {
-        style: {
-          // fallback for unsupported colors like oklab
-          color: fallbackColor("black"),
-          backgroundColor: fallbackColor("white"),
-        },
-      })
-      .then((dataUrl) => {
-        const pdf = new jsPDF("p", "mm", "a4");
-        const imgProps = pdf.getImageProperties(dataUrl);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    // Helper function to add section header
+    const addSectionHeader = (title, y) => {
+      pdf.setFillColor(0, 60, 70); // Dark teal
+      pdf.rect(15, y - 5, pageWidth - 30, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(title, 20, y + 1);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont(undefined, 'normal');
+      return y + 15;
+    };
 
-        pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
-        pdf.save("Pace_Feedback_Report.pdf");
-      })
-      .catch((error) => {
-        console.error("❌ Failed to generate PDF", error);
+    // Helper function to add metric row
+    const addMetricRow = (label, value, y) => {
+      pdf.setFontSize(9);
+      pdf.text(label + ":", 20, y);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(value, 120, y);
+      pdf.setFont(undefined, 'normal');
+      return y + 5;
+    };
+
+    // Helper function to check if we need a new page
+    const checkNewPage = (requiredSpace) => {
+      if (yPosition + requiredSpace > pageHeight - 20) {
+        pdf.addPage();
+        yPosition = 20;
+        return true;
+      }
+      return false;
+    };
+
+    try {
+      // Title Page
+      pdf.setFillColor(0, 60, 70);
+      pdf.rect(0, 0, pageWidth, 50, 'F');
+      
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(24);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("SPEECH ANALYSIS REPORT", pageWidth / 2, 25, { align: 'center' });
+      
+      pdf.setFontSize(16);
+      pdf.setFont(undefined, 'normal');
+      pdf.text("Professional Pace & Pause Management Analysis", pageWidth / 2, 35, { align: 'center' });
+      
+      pdf.setTextColor(0, 0, 0);
+      yPosition = 70;
+
+      // Date and Session Info
+      const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
       });
+
+      yPosition = addText(`Report Generated: ${currentDate}`, 20, yPosition, pageWidth - 40, 10);
+      yPosition = addText(`Duration: ${formatTime(results.duration)}`, 20, yPosition, pageWidth - 40, 10);
+      yPosition = addText(`Word Count: ${results.wordCount}`, 20, yPosition, pageWidth - 40, 10);
+      yPosition += 10;
+
+      // Executive Summary
+      yPosition = addSectionHeader("EXECUTIVE SUMMARY", yPosition);
+      checkNewPage(30);
+      
+      const summaryText = `This comprehensive speech analysis reveals ${results.prediction?.toLowerCase() || 'optimal'} pacing with ${results.consistencyScore?.toFixed(1) || '0'}% consistency. `;
+      yPosition = addText(summaryText, 20, yPosition, pageWidth - 40, 10);
+      
+      if (results.rateEnhancedFeedback?.overall_assessment) {
+        yPosition = addText(`Overall Assessment: ${results.rateEnhancedFeedback.overall_assessment}`, 20, yPosition, pageWidth - 40, 10);
+      }
+      
+      yPosition += 10;
+
+      // Speech Rate Analysis
+      yPosition = addSectionHeader("SPEECH RATE ANALYSIS", yPosition);
+      checkNewPage(40);
+      
+      yPosition = addMetricRow("Words Per Minute", `${results.wpm?.toFixed(1) || '0'} WPM`, yPosition);
+      yPosition = addMetricRow("Rate Category", results.prediction || "Analyzing", yPosition);
+      yPosition = addMetricRow("Consistency Score", `${results.consistencyScore?.toFixed(1) || '0'}%`, yPosition);
+      
+      // Add WPM rating with visual indicator (using backend model training thresholds)
+      yPosition += 5;
+      const wpmRating = results.wpm < 100 ? "Slow" : results.wpm <= 150 ? "Ideal" : "Fast";
+      const wpmColor = wpmRating === "Ideal" ? [34, 197, 94] : wpmRating === "Slow" ? [251, 191, 36] : [239, 68, 68];
+      yPosition = addText(`Performance Rating: ${wpmRating}`, 20, yPosition, pageWidth - 40, 10, wpmColor);
+      
+      // Rate Feedback
+      if (results.rateEnhancedFeedback?.pace_analysis) {
+        yPosition += 5;
+        yPosition = addText("Pace Analysis:", 20, yPosition, pageWidth - 40, 10, [0, 60, 70]);
+        yPosition = addText(results.rateEnhancedFeedback.pace_analysis.feedback, 20, yPosition, pageWidth - 40, 9);
+        
+        if (results.rateEnhancedFeedback.pace_analysis.suggestions) {
+          yPosition += 5;
+          yPosition = addText("Recommendations:", 20, yPosition, pageWidth - 40, 10, [0, 60, 70]);
+          results.rateEnhancedFeedback.pace_analysis.suggestions.slice(0, 3).forEach(suggestion => {
+            yPosition = addText(`• ${suggestion}`, 25, yPosition, pageWidth - 45, 9);
+          });
+        }
+      }
+      
+      yPosition += 10;
+
+      // Pause Analysis
+      yPosition = addSectionHeader("PAUSE ANALYSIS", yPosition);
+      checkNewPage(50);
+      
+      yPosition = addMetricRow("Total Pause Time", `${results.pauseAnalysis?.totalPauseTime?.toFixed(1) || '0'} seconds`, yPosition);
+      yPosition = addMetricRow("Pause Ratio", `${results.pauseAnalysis?.pauseRatio?.toFixed(1) || '0'}%`, yPosition);
+      yPosition = addMetricRow("Short Pauses", `${results.pauseAnalysis?.shortPauses || '0'}`, yPosition);
+      yPosition = addMetricRow("Medium Pauses", `${results.pauseAnalysis?.mediumPauses || '0'}`, yPosition);
+      yPosition = addMetricRow("Long Pauses", `${results.pauseAnalysis?.longPauses || '0'}`, yPosition);
+      yPosition = addMetricRow("Excessive Pauses", `${results.pauseAnalysis?.excessivePauses || '0'}`, yPosition);
+      yPosition = addMetricRow("Average Pause Length", `${results.pauseAnalysis?.averagePauseLength?.toFixed(2) || '0'}s`, yPosition);
+      yPosition = addMetricRow("Pause Efficiency", `${results.pauseAnalysis?.pauseEfficiency?.toFixed(2) || '0'}s`, yPosition);
+      
+      // Pause Recommendations
+      if (results.suggestions && results.suggestions.length > 0) {
+        yPosition += 5;
+        yPosition = addText("Priority Recommendations:", 20, yPosition, pageWidth - 40, 10, [0, 60, 70]);
+        
+        const highPriority = results.suggestions.filter(s => s.priority === "High");
+        const mediumPriority = results.suggestions.filter(s => s.priority === "Medium");
+        
+        if (highPriority.length > 0) {
+          yPosition = addText("High Priority Issues:", 25, yPosition, pageWidth - 45, 9, [220, 38, 38]);
+          highPriority.slice(0, 2).forEach(suggestion => {
+            yPosition = addText(`• ${suggestion.issue}: ${suggestion.action}`, 30, yPosition, pageWidth - 50, 8);
+          });
+        }
+        
+        if (mediumPriority.length > 0) {
+          yPosition = addText("Medium Priority Issues:", 25, yPosition, pageWidth - 45, 9, [245, 158, 11]);
+          mediumPriority.slice(0, 2).forEach(suggestion => {
+            yPosition = addText(`• ${suggestion.issue}: ${suggestion.action}`, 30, yPosition, pageWidth - 50, 8);
+          });
+        }
+      }
+      
+      yPosition += 10;
+
+      // AI Insights
+      yPosition = addSectionHeader("AI-POWERED INSIGHTS", yPosition);
+      checkNewPage(40);
+      
+      if (results.advancedMetrics) {
+        yPosition = addMetricRow("Toastmasters Compliance", `${results.advancedMetrics.toastmasters_score?.toFixed(1) || '0'}%`, yPosition);
+        yPosition = addMetricRow("Confidence Score", `${results.advancedMetrics.confidence_score?.toFixed(1) || '0'}%`, yPosition);
+        yPosition = addMetricRow("Speaking Efficiency", `${results.advancedMetrics.speaking_efficiency?.toFixed(1) || '0'}%`, yPosition);
+        yPosition = addMetricRow("Rhythm Consistency", `${results.advancedMetrics.rhythm_consistency?.toFixed(1) || '0'}%`, yPosition);
+        yPosition = addMetricRow("Cognitive Load Score", `${results.advancedMetrics.cognitive_load?.toFixed(1) || '0'}%`, yPosition);
+      }
+      
+      // AI Recommendations
+      if (results.priorityImprovements && results.priorityImprovements.length > 0) {
+        yPosition += 5;
+        yPosition = addText("AI-Generated Improvements:", 20, yPosition, pageWidth - 40, 10, [0, 60, 70]);
+        
+        const improvements = results.priorityImprovements.slice(0, 3);
+        improvements.forEach(improvement => {
+          yPosition = addText(`• ${improvement.issue}: ${improvement.action}`, 25, yPosition, pageWidth - 45, 9);
+        });
+      }
+      
+      yPosition += 10;
+
+      // Comprehensive Feedback & Recommendations
+      yPosition = addSectionHeader("COMPREHENSIVE FEEDBACK & RECOMMENDATIONS", yPosition);
+      checkNewPage(60);
+      
+      // Frontend Rate Feedback
+      if (results.rateEnhancedFeedback) {
+        yPosition = addText("Speech Rate Analysis:", 20, yPosition, pageWidth - 40, 10, [0, 60, 70]);
+        yPosition = addText(results.rateEnhancedFeedback.overall_assessment || "Analysis completed", 25, yPosition, pageWidth - 45, 9);
+        
+        if (results.rateEnhancedFeedback.pace_analysis?.suggestions) {
+          yPosition += 3;
+          yPosition = addText("Pace Recommendations:", 25, yPosition, pageWidth - 45, 9, [0, 60, 70]);
+          results.rateEnhancedFeedback.pace_analysis.suggestions.forEach(suggestion => {
+            yPosition = addText(`• ${suggestion}`, 30, yPosition, pageWidth - 50, 8);
+          });
+        }
+        
+        if (results.rateEnhancedFeedback.consistency_analysis?.suggestions) {
+          yPosition += 3;
+          yPosition = addText("Consistency Recommendations:", 25, yPosition, pageWidth - 45, 9, [0, 60, 70]);
+          results.rateEnhancedFeedback.consistency_analysis.suggestions.forEach(suggestion => {
+            yPosition = addText(`• ${suggestion}`, 30, yPosition, pageWidth - 50, 8);
+          });
+        }
+        
+        yPosition += 5;
+      }
+      
+      // Backend Pause Recommendations
+      if (results.suggestions && results.suggestions.length > 0) {
+        yPosition = addText("Pause Management Recommendations:", 20, yPosition, pageWidth - 40, 10, [0, 60, 70]);
+        
+        const groupedSuggestions = {
+          High: results.suggestions.filter(s => s.priority === "High"),
+          Medium: results.suggestions.filter(s => s.priority === "Medium"),
+          Low: results.suggestions.filter(s => s.priority === "Low")
+        };
+        
+        Object.entries(groupedSuggestions).forEach(([priority, suggestions]) => {
+          if (suggestions.length > 0) {
+            const priorityColor = priority === "High" ? [220, 38, 38] : priority === "Medium" ? [245, 158, 11] : [34, 197, 94];
+            yPosition = addText(`${priority} Priority:`, 25, yPosition, pageWidth - 45, 9, priorityColor);
+            suggestions.forEach(suggestion => {
+              yPosition = addText(`• ${suggestion.issue}: ${suggestion.action}`, 30, yPosition, pageWidth - 50, 8);
+              yPosition = addText(`  Target: ${suggestion.target} (Impact: ${suggestion.impact})`, 32, yPosition, pageWidth - 52, 7, [100, 100, 100]);
+            });
+          }
+        });
+        
+        yPosition += 5;
+      }
+      
+      // AI-Generated Priority Improvements
+      if (results.priorityImprovements && results.priorityImprovements.length > 0) {
+        yPosition = addText("AI-Generated Priority Improvements:", 20, yPosition, pageWidth - 40, 10, [0, 60, 70]);
+        
+        const groupedImprovements = {
+          High: results.priorityImprovements.filter(s => s.priority === "High"),
+          Medium: results.priorityImprovements.filter(s => s.priority === "Medium"),
+          Low: results.priorityImprovements.filter(s => s.priority === "Low"),
+          Practice: results.priorityImprovements.filter(s => s.priority === "Practice"),
+          Immediate: results.priorityImprovements.filter(s => s.priority === "Immediate")
+        };
+        
+        Object.entries(groupedImprovements).forEach(([category, improvements]) => {
+          if (improvements.length > 0) {
+            const categoryColor = category === "High" ? [220, 38, 38] : 
+                                category === "Medium" ? [245, 158, 11] : 
+                                category === "Low" ? [34, 197, 94] :
+                                category === "Practice" ? [59, 130, 246] : [168, 85, 247];
+            yPosition = addText(`${category} Category:`, 25, yPosition, pageWidth - 45, 9, categoryColor);
+            improvements.slice(0, 3).forEach(improvement => { // Limit to top 3 per category
+              yPosition = addText(`• ${improvement.issue}: ${improvement.action}`, 30, yPosition, pageWidth - 50, 8);
+              yPosition = addText(`  Current: ${improvement.current} → Target: ${improvement.target}`, 32, yPosition, pageWidth - 52, 7, [100, 100, 100]);
+            });
+          }
+        });
+        
+        yPosition += 5;
+      }
+      
+      // Structured Suggestions from Backend
+      if (results.structuredSuggestions && Object.keys(results.structuredSuggestions).length > 0) {
+        yPosition = addText("Structured Analysis Suggestions:", 20, yPosition, pageWidth - 40, 10, [0, 60, 70]);
+        
+        Object.entries(results.structuredSuggestions).forEach(([category, suggestions]) => {
+          if (suggestions && suggestions.length > 0) {
+            yPosition = addText(`${category.replace(/_/g, ' ').toUpperCase()}:`, 25, yPosition, pageWidth - 45, 9, [0, 60, 70]);
+            suggestions.slice(0, 2).forEach(suggestion => {
+              yPosition = addText(`• ${suggestion}`, 30, yPosition, pageWidth - 50, 8);
+            });
+          }
+        });
+        
+        yPosition += 5;
+      }
+      
+      yPosition += 10;
+
+      // Action Plan
+      yPosition = addSectionHeader("RECOMMENDED ACTION PLAN", yPosition);
+      checkNewPage(50);
+      
+      const actionItems = [];
+      const priorities = [];
+      
+      // Add action items based on analysis with priority levels (using backend model training thresholds)
+      if (results.wpm < 100) {
+        actionItems.push("Practice speaking at a faster pace to reach 100-150 WPM range");
+        priorities.push("High");
+      } else if (results.wpm > 150) {
+        actionItems.push("Practice slowing down speech rate for better audience comprehension");
+        priorities.push("High");
+      }
+      
+      if (results.pauseAnalysis?.pauseRatio > 15) {
+        actionItems.push("Reduce total pause time to 8-12% of speech duration");
+        priorities.push("High");
+      } else if (results.pauseAnalysis?.pauseRatio < 8) {
+        actionItems.push("Add strategic pauses for emphasis and audience processing");
+        priorities.push("Medium");
+      }
+      
+      if (results.consistencyScore < 70) {
+        actionItems.push("Practice with metronome to improve pacing consistency");
+        priorities.push("Medium");
+      }
+      
+      if (results.pauseAnalysis?.excessivePauses > 0) {
+        actionItems.push("Eliminate all pauses longer than 5 seconds");
+        priorities.push("High");
+      }
+      
+      if (actionItems.length === 0) {
+        actionItems.push("Continue current speaking practices - analysis shows good performance");
+        actionItems.push("Practice maintaining consistent pace throughout longer presentations");
+        priorities.push("Low", "Low");
+      }
+      
+      // Add action items with priority indicators
+      actionItems.forEach((item, index) => {
+        const priority = priorities[index] || "Low";
+        const priorityColor = priority === "High" ? [220, 38, 38] : priority === "Medium" ? [245, 158, 11] : [34, 197, 94];
+        
+        yPosition = addText(`Priority: ${priority}`, 20, yPosition, pageWidth - 40, 9, priorityColor);
+        yPosition = addText(`${index + 1}. ${item}`, 20, yPosition, pageWidth - 40, 10);
+        yPosition += 3;
+      });
+      
+      // Add progress tracking section
+      yPosition += 5;
+      yPosition = addText("Progress Tracking:", 20, yPosition, pageWidth - 40, 10, [0, 60, 70]);
+      yPosition = addText("□ Record another session to track improvement", 25, yPosition, pageWidth - 45, 9);
+      yPosition = addText("□ Practice recommended exercises daily", 25, yPosition, pageWidth - 45, 9);
+      yPosition = addText("□ Set specific goals based on this analysis", 25, yPosition, pageWidth - 45, 9);
+      
+      yPosition += 10;
+
+      // Add Summary Page
+      pdf.addPage();
+      yPosition = 20;
+      
+      yPosition = addSectionHeader("ANALYSIS SUMMARY", yPosition);
+      
+      // Key Performance Indicators
+      yPosition = addText("Key Performance Indicators:", 20, yPosition, pageWidth - 40, 11, [0, 60, 70]);
+      yPosition += 5;
+      
+      const kpis = [
+        { label: "Overall Performance", value: results.prediction || "Analyzing", color: results.prediction === "Ideal" ? [34, 197, 94] : [245, 158, 11] },
+        { label: "Speech Rate", value: `${results.wpm?.toFixed(1) || '0'} WPM`, color: [0, 60, 70] },
+        { label: "Consistency Score", value: `${results.consistencyScore?.toFixed(1) || '0'}%`, color: [34, 197, 94] },
+        { label: "Pause Management", value: `${results.pauseAnalysis?.pauseRatio?.toFixed(1) || '0'}% ratio`, color: [59, 130, 246] },
+        { label: "AI Confidence", value: `${results.pauseAnalysis?.confidence?.toFixed(1) || '0'}%`, color: [168, 85, 247] }
+      ];
+      
+      kpis.forEach(kpi => {
+        yPosition = addText(`${kpi.label}: ${kpi.value}`, 25, yPosition, pageWidth - 45, 10, kpi.color);
+      });
+      
+      yPosition += 10;
+      
+      // Next Steps
+      yPosition = addSectionHeader("NEXT STEPS", yPosition);
+      yPosition = addText("1. Review the recommendations in the Action Plan section", 20, yPosition, pageWidth - 40, 10);
+      yPosition = addText("2. Practice the suggested exercises for 15-20 minutes daily", 20, yPosition, pageWidth - 40, 10);
+      yPosition = addText("3. Record another session in 1-2 weeks to track progress", 20, yPosition, pageWidth - 40, 10);
+      yPosition = addText("4. Focus on the high-priority areas identified in this report", 20, yPosition, pageWidth - 40, 10);
+      yPosition = addText("5. Consider joining a Toastmasters club for additional practice", 20, yPosition, pageWidth - 40, 10);
+      
+      yPosition += 10;
+      
+      // Contact Information
+      yPosition = addSectionHeader("SUPPORT & RESOURCES", yPosition);
+      yPosition = addText("For additional support and resources:", 20, yPosition, pageWidth - 40, 10);
+      yPosition = addText("• SpeakCraft Platform: Access more training modules", 25, yPosition, pageWidth - 45, 9);
+      yPosition = addText("• Toastmasters International: Join local speaking clubs", 25, yPosition, pageWidth - 45, 9);
+      yPosition = addText("• Speech Therapy: Consider professional coaching for advanced needs", 25, yPosition, pageWidth - 45, 9);
+
+      // Footer
+      const footerY = pageHeight - 20;
+      pdf.setFontSize(8);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text("Generated by SpeakCraft Speech Analysis System", pageWidth / 2, footerY, { align: 'center' });
+      pdf.text("For professional development and speech improvement", pageWidth / 2, footerY + 5, { align: 'center' });
+
+      // Save the PDF
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      pdf.save(`SpeakCraft_Analysis_Report_${timestamp}.pdf`);
+      
+    } catch (error) {
+      console.error("❌ Failed to generate professional PDF report:", error);
+      alert("Failed to generate report. Please try again.");
+    }
   };
 
   return (
@@ -961,25 +1376,116 @@ const PaceManagement = () => {
 
                 {/* Action Buttons */}
                 <div
-                  style={{ marginTop: "1rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}
+                  style={{ marginTop: "1rem", display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}
                 >
                   <button
-                    onClick={downloadPDFReport}
+                    onClick={() => setShowReportPreview(!showReportPreview)}
+                    disabled={!audioUrl}
                     style={{
-                      backgroundColor: "#025838",
+                      backgroundColor: !audioUrl ? "#666" : "#1e40af",
                       color: "white",
                       padding: "0.6rem 1.2rem",
                       borderRadius: "0.5rem",
                       border: "none",
                       fontWeight: "600",
-                      cursor: "pointer",
+                      cursor: !audioUrl ? "not-allowed" : "pointer",
                       boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                      transition: "all 0.3s ease",
+                      opacity: !audioUrl ? 0.6 : 1,
                     }}
                   >
-                    📝 Generate Report
+                    👁️ {showReportPreview ? "Hide Preview" : "Preview Report"}
+                  </button>
+
+                  <button
+                    onClick={downloadPDFReport}
+                    disabled={isGeneratingReport || !audioUrl}
+                    style={{
+                      backgroundColor: isGeneratingReport ? "#666" : "#025838",
+                      color: "white",
+                      padding: "0.6rem 1.2rem",
+                      borderRadius: "0.5rem",
+                      border: "none",
+                      fontWeight: "600",
+                      cursor: isGeneratingReport || !audioUrl ? "not-allowed" : "pointer",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                      transition: "all 0.3s ease",
+                      opacity: !audioUrl ? 0.6 : 1,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isGeneratingReport && audioUrl) {
+                        e.target.style.backgroundColor = "#034a2c";
+                        e.target.style.transform = "translateY(-2px)";
+                        e.target.style.boxShadow = "0 4px 12px rgba(0,0,0,0.4)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isGeneratingReport && audioUrl) {
+                        e.target.style.backgroundColor = "#025838";
+                        e.target.style.transform = "translateY(0)";
+                        e.target.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
+                      }
+                    }}
+                  >
+                    {isGeneratingReport ? (
+                      <>
+                        <span style={{ animation: "spin 1s linear infinite", display: "inline-block", marginRight: "8px" }}>⏳</span>
+                        Generating Report...
+                      </>
+                    ) : (
+                      "📊 Generate Professional Report"
+                    )}
                   </button>
 
                 </div>
+
+                {/* Report Preview */}
+                {showReportPreview && audioUrl && (
+                  <div style={{
+                    marginTop: "1rem",
+                    padding: "1rem",
+                    backgroundColor: "#ffffffa6",
+                    borderRadius: "0.75rem",
+                    maxHeight: "300px",
+                    overflowY: "auto"
+                  }}>
+                    <h4 style={{ color: "black", fontSize: "1rem", marginBottom: "0.75rem", fontWeight: "bold" }}>
+                      📋 Report Preview
+                    </h4>
+                    
+                    <div style={{ fontSize: "0.9rem", color: "black", lineHeight: "1.4" }}>
+                      <div style={{ marginBottom: "0.5rem" }}>
+                        <strong>📊 Executive Summary:</strong> {results.prediction?.toLowerCase() || 'optimal'} pacing with {results.consistencyScore?.toFixed(1) || '0'}% consistency
+              </div>
+                      
+                      <div style={{ marginBottom: "0.5rem" }}>
+                        <strong>🎯 Key Metrics:</strong>
+                        <ul style={{ margin: "0.25rem 0 0 1rem", padding: 0 }}>
+                          <li>Speech Rate: {results.wpm?.toFixed(1) || '0'} WPM</li>
+                          <li>Pause Ratio: {results.pauseAnalysis?.pauseRatio?.toFixed(1) || '0'}%</li>
+                          <li>Excessive Pauses: {results.pauseAnalysis?.excessivePauses || '0'}</li>
+                          <li>AI Confidence: {(results.pauseAnalysis?.confidence * 100)?.toFixed(1) || '0'}%</li>
+                        </ul>
+                      </div>
+                      
+                      <div style={{ marginBottom: "0.5rem" }}>
+                        <strong>🎯 Priority Actions:</strong>
+                        <ul style={{ margin: "0.25rem 0 0 1rem", padding: 0 }}>
+                          {results.suggestions && results.suggestions.filter(s => s.priority === "High").slice(0, 2).map((suggestion, index) => (
+                            <li key={index} style={{ color: "#dc2626" }}>• {suggestion.issue}</li>
+                          ))}
+                          {results.suggestions && results.suggestions.filter(s => s.priority === "High").length === 0 && (
+                            <li style={{ color: "#16a34a" }}>• No critical issues detected</li>
+                          )}
+                        </ul>
+                      </div>
+                      
+                      <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "0.5rem" }}>
+                        Full report will include detailed analysis, charts, and comprehensive action plan.
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1143,18 +1649,6 @@ const PaceManagement = () => {
                 AI Insights
               </button>
 
-              {/* Voice Quality Tab */}
-              <button
-                className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
-                  activeTab === "voice"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
-                }`}
-                onClick={() => setActiveTab("voice")}
-              >
-                <FaUserCheck />
-                Voice Quality
-              </button>
             </div>
             {activeTab === "rate" && (
               <div
@@ -2116,98 +2610,6 @@ const PaceManagement = () => {
               </div>
             )}
 
-            {activeTab === "voice" && (
-              <div className="flex flex-col w-full h-full">
-                <h2 className="text-xl lg:text-2xl font-bold text-white mt-2 mb-4">
-                  Voice Quality Analysis
-                </h2>
-
-                {/* Essential Voice Quality Metrics (Non-Loudness) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
-                    <h4 className="text-white font-semibold mb-2">🎤 Voice Clarity</h4>
-                    <p className="text-xl text-green-300 font-bold">{(results.advancedMetrics?.hnr_mean || 0).toFixed(1)} dB</p>
-                    <p className="text-white/70 text-sm">Harmonic-to-Noise Ratio</p>
-                    <p className="text-white/70 text-sm">Higher = Better Voice Quality</p>
-                    <p className="text-white/60 text-xs mt-2">Measures voice clarity and intelligibility</p>
-                  </div>
-
-                  <div className="p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
-                    <h4 className="text-white font-semibold mb-2">🎼 Formant Analysis</h4>
-                    <p className="text-xl text-blue-300 font-bold">{((results.advancedMetrics?.f2_mean || 0) - (results.advancedMetrics?.f1_mean || 0)).toFixed(1)} Hz</p>
-                    <p className="text-white/70 text-sm">F2-F1 Distance</p>
-                    <p className="text-white/70 text-sm">Speech Articulation</p>
-                    <p className="text-white/60 text-xs mt-2">F1, F2, F3 vowel frequencies for clear speech</p>
-                  </div>
-                </div>
-
-
-
-                {/* Voice Quality Chart */}
-                <div className="w-full p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg mb-6">
-                  <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">Voice Quality Metrics</h3>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={[
-                      { 
-                        metric: "Voice Clarity", 
-                        value: Math.max(0, Math.min(100, (results.advancedMetrics?.hnr_mean || 0) * 5)),
-                        color: "#10b981"
-                      },
-                      { 
-                        metric: "Formant Balance", 
-                        value: Math.max(0, 100 - Math.abs((results.advancedMetrics?.f2_mean || 0) - (results.advancedMetrics?.f1_mean || 0)) / 100),
-                        color: "#3b82f6"
-                      },
-                      { 
-                        metric: "Voice Stability", 
-                        value: Math.max(0, 100 - (results.advancedMetrics?.jitter_local || 0) * 1000),
-                        color: "#8b5cf6"
-                      },
-                      { 
-                        metric: "Voice Clarity", 
-                        value: Math.max(0, 100 - (results.advancedMetrics?.shimmer_local || 0) * 100),
-                        color: "#f59e0b"
-                      }
-                    ]}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                      <XAxis dataKey="metric" tick={{ fill: "#fff", fontSize: 11 }} />
-                      <YAxis tick={{ fill: "#fff" }} domain={[0, 100]} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: "#002b36", border: "none", borderRadius: "8px", color: "white" }}
-                      />
-                      <Bar dataKey="value" fill="#00ccff" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Voice Quality Recommendations */}
-                <div className="w-full p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
-                  <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">Voice Improvement Tips</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-3 bg-white/10 rounded-lg">
-                      <h4 className="text-white font-semibold mb-2">🎤 Voice Clarity</h4>
-                      <p className="text-white/80 text-sm">Focus on breath support and relaxation techniques to improve voice clarity and reduce vocal tension.</p>
-                      <p className="text-white/60 text-xs mt-2">Current HNR: {(results.advancedMetrics?.hnr_mean || 0).toFixed(1)} dB</p>
-                    </div>
-                    <div className="p-3 bg-white/10 rounded-lg">
-                      <h4 className="text-white font-semibold mb-2">🎯 Articulation</h4>
-                      <p className="text-white/80 text-sm">Practice articulation exercises to improve speech clarity and formant balance for better intelligibility.</p>
-                      <p className="text-white/60 text-xs mt-2">F2-F1 Distance: {((results.advancedMetrics?.f2_mean || 0) - (results.advancedMetrics?.f1_mean || 0)).toFixed(1)} Hz</p>
-                    </div>
-                    <div className="p-3 bg-white/10 rounded-lg">
-                      <h4 className="text-white font-semibold mb-2">🎵 Voice Stability</h4>
-                      <p className="text-white/80 text-sm">Work on reducing vocal jitter and shimmer for more stable voice production.</p>
-                      <p className="text-white/60 text-xs mt-2">Jitter: {(results.advancedMetrics?.jitter_local || 0).toFixed(3)}, Shimmer: {(results.advancedMetrics?.shimmer_local || 0).toFixed(3)}</p>
-                    </div>
-                    <div className="p-3 bg-white/10 rounded-lg">
-                      <h4 className="text-white font-semibold mb-2">🎼 Pitch Control</h4>
-                      <p className="text-white/80 text-sm">Maintain consistent pitch throughout your presentation for better vocal variety.</p>
-                      <p className="text-white/60 text-xs mt-2">Pitch Std: {(results.advancedMetrics?.pitch_std || 0).toFixed(1)} Hz</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Animated Image - Fixed Position at End of Each Tab */}
             <motion.div
