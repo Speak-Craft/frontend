@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { FaComment, FaStop, FaPlay, FaPause, FaChartBar } from "react-icons/fa";
+import { FaComment, FaChartBar, FaPlay, FaStop, FaPause, FaMicrophone, FaClock } from "react-icons/fa";
 import axios from "axios";
 import image01 from "../assets/images/fillerbg.png";
 
@@ -14,18 +14,14 @@ const FillerWords = () => {
   const [recordedAt, setRecordedAt] = useState(null);
   const [savedRecs, setSavedRecs] = useState([]);
   
-  // Audio recording states
+  // Recording states
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordTime, setRecordTime] = useState(0);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const mediaStreamRef = useRef(null);
-  const analyserRef = useRef(null);
-  const audioContextRef = useRef(null);
-  const gainNodeRef = useRef(null);
-  const canvasRef = useRef(null);
-  let animationFrameId = useRef(null);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     fetchSavedRecordings();
@@ -33,15 +29,21 @@ const FillerWords = () => {
 
   // Timer effect for recording
   useEffect(() => {
-    let timer;
-
     if (isRecording && !isPaused) {
-      timer = setInterval(() => {
+      timerRef.current = setInterval(() => {
         setRecordTime((prev) => prev + 1);
       }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
     }
 
-    return () => clearInterval(timer);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
   }, [isRecording, isPaused]);
 
   // Cleanup on unmount
@@ -50,18 +52,8 @@ const FillerWords = () => {
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
     };
   }, []);
-
-  // Audio analysis effect
-  useEffect(() => {
-    if (isRecording && !isPaused) {
-      startAnalyzing();
-    }
-  }, [isRecording, isPaused]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -81,190 +73,83 @@ const FillerWords = () => {
     }
   };
 
-  // Audio analysis functions
-  const startAnalyzing = () => {
-    if (mediaStreamRef.current) {
-      audioContextRef.current = new (window.AudioContext ||
-        window.webkitAudioContext)();
-      gainNodeRef.current = audioContextRef.current.createGain();
-      analyserRef.current = audioContextRef.current.createAnalyser();
-
-      const source = audioContextRef.current.createMediaStreamSource(
-        mediaStreamRef.current
-      );
-      source.connect(analyserRef.current);
-      analyserRef.current.connect(gainNodeRef.current);
-      gainNodeRef.current.gain.setValueAtTime(
-        0,
-        audioContextRef.current.currentTime
-      );
-      gainNodeRef.current.connect(audioContextRef.current.destination);
-      analyserRef.current.fftSize = 256;
-      drawSineWave();
-    }
-  };
-
-  const drawSineWave = () => {
-    if (!canvasRef.current || !analyserRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const bufferLength = analyserRef.current.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    const draw = () => {
-      if (!isRecording || isPaused) return;
-      analyserRef.current.getByteFrequencyData(dataArray);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.beginPath();
-
-      for (let i = 0; i < bufferLength; i++) {
-        const x = (i / bufferLength) * canvas.width;
-        const y = (dataArray[i] / 255) * canvas.height;
-        ctx.lineTo(x, y);
-      }
-
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      animationFrameId.current = requestAnimationFrame(draw);
-    };
-
-    cancelAnimationFrame(animationFrameId.current);
-    draw();
-  };
-
-  // Recording functions
-  const handlePlay = async () => {
-    if (!isRecording || isPaused) {
-      try {
-        if (!isRecording) {
-          // Reset analysis section for a new recording session
-          setResult(null);
-          setAudioURL(null);
-          setAudioBlob(null);
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              sampleRate: 16000
-            },
-          });
-          mediaStreamRef.current = stream;
-          
-          // Try to use WAV format first, fallback to WebM
-          let mimeType = 'audio/wav';
-          if (!MediaRecorder.isTypeSupported('audio/wav')) {
-            // Try other formats in order of preference
-            if (MediaRecorder.isTypeSupported('audio/mp4')) {
-              mimeType = 'audio/mp4';
-            } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
-              mimeType = 'audio/ogg;codecs=opus';
-            } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-              mimeType = 'audio/webm;codecs=opus';
-            } else {
-              mimeType = 'audio/webm';
-            }
-          }
-          
-          mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
-
-          mediaRecorderRef.current.ondataavailable = (event) => {
-            audioChunksRef.current.push(event.data);
-          };
-
-          mediaRecorderRef.current.onstop = () => {
-            // Determine the correct MIME type based on what was used for recording
-            const mimeType = mediaRecorderRef.current.mimeType || "audio/webm";
-            const audioBlob = new Blob(audioChunksRef.current, {
-              type: mimeType,
-            });
-            
-            const audioUrl = URL.createObjectURL(audioBlob);
-            setAudioURL(audioUrl);
-            setAudioBlob(audioBlob);
-            setAudioDuration(recordTime);
-            setRecordedAt(new Date());
-
-            // Auto-analyze after recording stops
-            setTimeout(() => {
-              analyzeBlob(audioBlob);
-            }, 500); // Small delay to ensure blob is ready
-          };
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 16000
+        },
+      });
+      
+      mediaStreamRef.current = stream;
+      
+      // Use WebM format which is most reliable for browser recordings
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+          mimeType = 'audio/ogg;codecs=opus';
+        } else {
+          mimeType = 'audio/webm';
         }
-
-        setIsRecording(true);
-        setIsPaused(false);
-
-        if (mediaRecorderRef.current.state === "paused") {
-          mediaRecorderRef.current.resume();
-        } else if (mediaRecorderRef.current.state === "inactive") {
-          mediaRecorderRef.current.start(1000);
-        }
-        drawSineWave();
-      } catch (error) {
-        console.error("Error accessing the microphone:", error);
       }
-    }
-  };
+      
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
 
-  const handlePause = () => {
-    if (mediaRecorderRef.current && isRecording && !isPaused) {
-      setIsPaused(true);
-      mediaRecorderRef.current.pause();
-    }
-  };
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
 
-  const handleStop = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      setIsRecording(false);
+      mediaRecorderRef.current.onstop = () => {
+        const mimeType = mediaRecorderRef.current.mimeType || "audio/webm";
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        
+        // Convert to WAV format for compatibility
+        const wavFile = new File([audioBlob], "presentation.wav", { type: "audio/wav" });
+        setAudioBlob(wavFile);
+        setAudioURL(URL.createObjectURL(audioBlob));
+        setAudioDuration(recordTime);
+        setRecordedAt(new Date());
+        setResult(null);
+      };
+
+      mediaRecorderRef.current.start(1000);
+      setIsRecording(true);
       setIsPaused(false);
       setRecordTime(0);
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      alert("Error accessing microphone. Please check permissions.");
+    }
+  };
+
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && isRecording && !isPaused) {
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && isRecording && isPaused) {
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      cancelAnimationFrame(animationFrameId.current);
+      setIsRecording(false);
+      setIsPaused(false);
+      
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       }
-      audioChunksRef.current = [];
-      
-      // Show loading state while analyzing
-      setIsLoading(true);
-    }
-  };
-
-  // Analyze a Blob by posting directly to FastAPI
-  const analyzeBlob = async (blob) => {
-    const formData = new FormData();
-    formData.append("audio", blob);
-
-    try {
-      setIsLoading(true);
-      const res = await axios.post(
-        "http://localhost:8000/filler/predict-filler-words",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      const data = res.data || {};
-      if (data.error) {
-        console.error("Analysis error:", data.error);
-        alert("Analysis failed: " + data.error);
-        return;
-      }
-
-      setResult({
-        fillerCount: Number.isFinite(data.filler_prediction) ? Number(data.filler_prediction) : 0,
-        message: data.message ?? "",
-      });
-    } catch (err) {
-      console.error("Analysis request failed", err);
-      alert("Something went wrong during analysis.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -276,27 +161,16 @@ const FillerWords = () => {
 
     try {
       setIsLoading(true);
-      const res = await axios.post(
-        "http://localhost:8000/filler/predict-filler-words",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const token = localStorage.getItem("token");
 
-      const data = res.data || {};
-      if (data.error) {
-        console.error("Analysis error:", data.error);
-        alert("Analysis failed: " + data.error);
-        return;
-      }
-
-      setResult({
-        fillerCount: Number.isFinite(data.filler_prediction) ? Number(data.filler_prediction) : 0,
-        message: data.message ?? "",
+      const res = await axios.post("http://localhost:3001/api/recording/upload", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
+
+      setResult(res.data);
     } catch (err) {
       console.error("Upload failed", err);
       alert("Something went wrong during upload.");
@@ -383,8 +257,9 @@ const FillerWords = () => {
                 alignItems: "center",
               }}
             >
+
               {/* Mic animation */}
-              <div className="relative flex items-center mt-20 justify-center">
+              <div className="relative flex items-center mt-4 justify-center">
                 {isRecording && !isPaused && (
                   <>
                     <motion.div
@@ -405,134 +280,54 @@ const FillerWords = () => {
                   </>
                 )}
 
-                <FaComment
+                <FaMicrophone
                   className={`text-black text-4xl ${
                     isRecording && !isPaused ? "animate-pulse" : "opacity-50"
                   }`}
                 />
               </div>
 
-              {/* Buttons */}
-              <div
-                className=" mt-10"
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  marginTop: "4rem",
-                  marginBottom: "1rem",
-                  gap: "1rem",
-                  flexWrap: "wrap",
-                }}
-              >
+              {/* Recording Controls */}
+              <div className="flex justify-center space-x-4 mt-6">
                 <button
-                  onClick={handlePause}
+                  onClick={pauseRecording}
                   disabled={!isRecording || isPaused}
-                  style={{
-                    backgroundColor: "white",
-                    padding: "1rem",
-                    borderRadius: "9999px",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                    opacity: !isRecording || isPaused ? 0.5 : 1,
-                    cursor:
-                      !isRecording || isPaused ? "not-allowed" : "pointer",
-                  }}
+                  className="p-3 bg-white rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition"
                 >
-                  <FaPause style={{ fontSize: "1.5rem", color: "black" }} />
+                  <FaPause className="text-black text-xl" />
                 </button>
                 <button
-                  onClick={handlePlay}
+                  onClick={startRecording}
                   disabled={isRecording && !isPaused}
-                  style={{
-                    backgroundColor: "white",
-                    padding: "1rem",
-                    borderRadius: "9999px",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                    opacity: isRecording && !isPaused ? 0.5 : 1,
-                    cursor:
-                      isRecording && !isPaused ? "not-allowed" : "pointer",
-                  }}
+                  className="p-3 bg-white rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition"
                 >
-                  <FaPlay style={{ fontSize: "1.5rem", color: "black" }} />
+                  <FaPlay className="text-black text-xl" />
                 </button>
                 <button
-                  onClick={handleStop}
+                  onClick={stopRecording}
                   disabled={!isRecording}
-                  style={{
-                    backgroundColor: "white",
-                    padding: "1rem",
-                    borderRadius: "9999px",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                    opacity: !isRecording ? 0.5 : 1,
-                    cursor: !isRecording ? "not-allowed" : "pointer",
-                  }}
+                  className="p-3 bg-white rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition"
                 >
-                  <FaStop style={{ fontSize: "1.5rem", color: "black" }} />
+                  <FaStop className="text-black text-xl" />
                 </button>
               </div>
-            </div>
 
-            {/* Timer and Status */}
-            <div style={{ textAlign: "center", marginTop: "1rem" }}>
-              <p
-                style={{
-                  color: "white",
-                  fontSize: "1.125rem",
-                  marginBottom: "0.5rem",
-                }}
-              >
+              {/* Timer */}
+              <p className="text-black text-lg mt-4 font-semibold">
                 Recording Time: {formatTime(recordTime)}
               </p>
-              {isLoading && (
-                <p
-                  style={{
-                    color: "#00ccff",
-                    fontSize: "1rem",
-                    fontWeight: "600",
-                  }}
-                >
-                  🔄 Analyzing audio...
-                </p>
-              )}
+
+            
             </div>
 
-            {/* Audio Playback */}
-            {audioURL && (
-              <div
-                style={{
-                  marginTop: "1.5rem",
-                  width: "100%",
-                  padding: "1rem",
-                  background: "#ffffffa6",
-                  borderRadius: "0.75rem",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                }}
+            <button
+                onClick={uploadAudio}
+                disabled={!audioBlob || isLoading}
+                className="mt-4 w-full bg-[#0084a6] text-white font-semibold py-2 px-4 rounded-lg hover:bg-[#00a8cc] transition disabled:opacity-50"
+                style={{ color: 'black' }}
               >
-                <h4
-                  className="font-semibold"
-                  style={{
-                    color: "black",
-                    fontSize: "1rem",
-                    marginBottom: "0.75rem",
-                  }}
-                >
-                  Playback Preview
-                </h4>
-
-                <audio
-                  controls
-                  src={audioURL}
-                  style={{
-                    width: "100%",
-                    borderRadius: "0.5rem",
-                    outline: "none",
-                  }}
-                />
-              </div>
-            )}
-
+                {isLoading ? "⏳ Analyzing..." : "⬆ Upload & Analyze"}
+              </button>
             {/* Enhanced Left Side Section - Quick Reference Only */}
             <div className="w-full mt-8 h-[500px] flex flex-col">
               {/* Filler Word Guidelines */}
@@ -715,6 +510,7 @@ const FillerWords = () => {
                   <button
                     onClick={saveRecording}
                     className="mt-4 w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition"
+                    style={{ color: 'black' }}
                   >
                     💾 Save Analysis
                   </button>
