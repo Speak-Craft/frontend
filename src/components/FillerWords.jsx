@@ -318,6 +318,14 @@ const FillerWords = () => {
               <div className="flex justify-center space-x-4 mt-6">
                 <button
                   onClick={pauseRecording}
+                  style={{
+                    backgroundColor: "white",
+                    padding: "1rem",
+                    borderRadius: "9999px",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                    opacity: !isRecording || isPaused ? 0.5 : 1,
+                    cursor: !isRecording || isPaused ? "not-allowed" : "pointer",
+                  }}
                   disabled={!isRecording || isPaused}
                   className="p-3 bg-white rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition"
                 >
@@ -325,6 +333,14 @@ const FillerWords = () => {
                 </button>
                 <button
                   onClick={startRecording}
+                  style={{
+                    backgroundColor: "white",
+                    padding: "1rem",
+                    borderRadius: "9999px",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                    opacity: isRecording && !isPaused ? 0.5 : 1,
+                    cursor: isRecording && !isPaused ? "not-allowed" : "pointer",
+                  }}
                   disabled={isRecording && !isPaused}
                   className="p-3 bg-white rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition"
                 >
@@ -332,6 +348,14 @@ const FillerWords = () => {
                 </button>
                 <button
                   onClick={stopRecording}
+                  style={{
+                    backgroundColor: "white",
+                    padding: "1rem",
+                    borderRadius: "9999px",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                    opacity: !isRecording ? 0.5 : 1,
+                    cursor: !isRecording ? "not-allowed" : "pointer",
+                  }}
                   disabled={!isRecording}
                   className="p-3 bg-white rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition"
                 >
@@ -349,7 +373,7 @@ const FillerWords = () => {
                 onClick={uploadAudio}
                 disabled={!audioBlob || isLoading}
                 className="mt-4 w-full bg-[#0084a6] text-white font-semibold py-2 px-4 rounded-lg hover:bg-[#00a8cc] transition disabled:opacity-50"
-                style={{ color: 'black' }}
+                style={{ color: '#0084a6' }}
               >
                 {isLoading ? "⏳ Analyzing..." : "⬆ Upload & Analyze"}
               </button>
@@ -495,6 +519,7 @@ const FillerWords = () => {
                     ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
                     : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
                 }`}
+                
                 onClick={() => setActiveTab("saved")}
               >
                 <FaComment />
@@ -555,7 +580,7 @@ const FillerWords = () => {
                   <button
                     onClick={saveRecording}
                     className="mt-4 w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition"
-                    style={{ color: 'black' }}
+                    style={{ color: '#0084a6' }}
                   >
                     💾 Save Analysis
                   </button>

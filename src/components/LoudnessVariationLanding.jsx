@@ -30,6 +30,7 @@ import {
 } from 'react-icons/fa';
 import loudness1 from '../assets/images/loudness2.jpg';
 import loudness2 from '../assets/images/loudness1.jpg';
+import topicVideo from "../assets/video/loudness.mp4";
 
 const LoudnessVariationLanding = () => {
   return (
@@ -438,11 +439,19 @@ const LoudnessVariationLanding = () => {
               <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-2xl p-4 border border-white/20">
                 <h3 className="text-[#f59e0b] font-bold text-lg mb-3">How It Works</h3>
                 <div className="bg-gray-800/50 rounded-xl p-6 border-2 border-dashed border-gray-600 flex flex-col items-center justify-center min-h-[180px]">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#f59e0b] to-[#d97706] rounded-full flex items-center justify-center mb-3">
-                    <FaPlay className="text-white text-lg ml-1" />
-                  </div>
-                  <p className="text-gray-400 text-sm text-center">Video demonstration coming soon</p>
-                  <p className="text-gray-500 text-xs text-center mt-1">Learn how our AI analyzes loudness variation in real-time</p>
+                <video 
+                    className="w-full h-auto rounded-xl"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    preload="metadata"
+                  >
+                    <source src={topicVideo} type="video/mp4" />
+                    <source src={topicVideo} type="video/quicktime" />
+                    Your browser does not support the video tag.
+                  </video>
+                  <p className="text-gray-400 text-sm text-center">Learn how our AI analyzes loudness variation in real-time</p>
                 </div>
               </div>
 
