@@ -570,8 +570,8 @@ const Loudness = () => {
   const getLoudnessLabel = (prediction) => prediction || "Analyzing...";
 
   return (
-    <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] p-4 lg:p-8 flex justify-center items-center">
-      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-6 flex flex-col justify-center items-center">
+    <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] h-[calc(100vh-4rem)] p-4 lg:p-8 flex justify-center items-center">
+      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-6 flex flex-col justify-center items-center overflow-hidden">
         <div className="flex flex-col lg:flex-row w-full h-full gap-4 lg:gap-8">
           {/* Left Side - Controls (Similar to PaceManagement) */}
           <div

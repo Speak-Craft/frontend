@@ -479,7 +479,8 @@ const LoudnessActivities = () => {
                   <motion.button
                     onClick={startGame}
                     disabled={isRunning || hasWon}
-                    className="bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-black px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
+                    style={{ color: '#0084a6' }}
+                    className="bg-green-500 hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -492,7 +493,8 @@ const LoudnessActivities = () => {
                       setMessage("Game stopped. Click Start to try again.");
                     }}
                     disabled={!isRunning}
-                    className="bg-red-400 hover:bg-red-500 text-black border border-white disabled:bg-gray-500 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
+                    style={{ color: '#0084a6' }}
+                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -521,6 +523,7 @@ const LoudnessActivities = () => {
                     onClick={startExercise}
                     className="bg-yellow-400 hover:bg-yellow-500 text-black px-6 py-3 rounded-2xl shadow-md font-semibold text-lg w-full flex items-center justify-center gap-2"
                     whileHover={{ scale: 1.05 }}
+                    style={{ color: '#0084a6' }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <FaRocket />

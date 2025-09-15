@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { FaComment, FaChartBar, FaPlay, FaStop, FaPause, FaMicrophone, FaClock } from "react-icons/fa";
+import { FaComment, FaChartBar, FaPlay, FaStop, FaPause, FaMicrophone, FaClock, FaBrain, FaCheckCircle } from "react-icons/fa";
 import axios from "axios";
 import image01 from "../assets/images/fillerbg.png";
 
@@ -64,12 +64,17 @@ const FillerWords = () => {
   const fetchSavedRecordings = async () => {
     try {
       const token = localStorage.getItem("token");
+      console.log("Fetching saved recordings from:", "http://localhost:3001/api/rec/save");
+      
       const res = await axios.get("http://localhost:3001/api/rec/save", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      
+      console.log("Saved recordings response:", res.data);
       setSavedRecs(res.data);
     } catch (err) {
       console.error("Failed to fetch saved recordings", err);
+      console.error("Error response:", err.response?.data);
     }
   };
 
@@ -108,11 +113,19 @@ const FillerWords = () => {
         const mimeType = mediaRecorderRef.current.mimeType || "audio/webm";
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         
-        // Convert to WAV format for compatibility
-        const wavFile = new File([audioBlob], "presentation.wav", { type: "audio/wav" });
-        setAudioBlob(wavFile);
+        // Create file with proper name and type for backend compatibility
+        const audioFile = new File([audioBlob], "recording.webm", { type: mimeType });
+        setAudioBlob(audioFile);
         setAudioURL(URL.createObjectURL(audioBlob));
-        setAudioDuration(recordTime);
+        
+        // Calculate duration using AudioContext - exact same logic as filler.txt
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioBlob.arrayBuffer().then(arrayBuffer => {
+          audioContext.decodeAudioData(arrayBuffer, (audioBuffer) => {
+            setAudioDuration(audioBuffer.duration);
+          });
+        });
+        
         setRecordedAt(new Date());
         setResult(null);
       };
@@ -163,6 +176,10 @@ const FillerWords = () => {
       setIsLoading(true);
       const token = localStorage.getItem("token");
 
+      console.log("Uploading audio to:", "http://localhost:3001/api/recording/upload");
+      console.log("Audio blob:", audioBlob);
+      console.log("Token:", token ? "Present" : "Missing");
+
       const res = await axios.post("http://localhost:3001/api/recording/upload", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -170,10 +187,12 @@ const FillerWords = () => {
         },
       });
 
+      console.log("Upload response:", res.data);
       setResult(res.data);
     } catch (err) {
       console.error("Upload failed", err);
-      alert("Something went wrong during upload.");
+      console.error("Error response:", err.response?.data);
+      alert("Something went wrong during upload. Check console for details.");
     } finally {
       setIsLoading(false);
     }
@@ -184,6 +203,14 @@ const FillerWords = () => {
 
     try {
       const token = localStorage.getItem("token");
+      
+      console.log("Saving recording to:", "http://localhost:3001/api/rec/save");
+      console.log("Data to save:", {
+        fillerCount: result.fillerCount,
+        duration: audioDuration,
+        date: recordedAt,
+      });
+
       await axios.post(
         "http://localhost:3001/api/rec/save",
         {
@@ -199,7 +226,8 @@ const FillerWords = () => {
       fetchSavedRecordings();
     } catch (err) {
       console.error("Error saving recording", err);
-      alert("Failed to save recording.");
+      console.error("Error response:", err.response?.data);
+      alert("Failed to save recording. Check console for details.");
     }
   };
 
@@ -257,7 +285,6 @@ const FillerWords = () => {
                 alignItems: "center",
               }}
             >
-
               {/* Mic animation */}
               <div className="relative flex items-center mt-4 justify-center">
                 {isRecording && !isPaused && (
@@ -316,8 +343,6 @@ const FillerWords = () => {
               <p className="text-black text-lg mt-4 font-semibold">
                 Recording Time: {formatTime(recordTime)}
               </p>
-
-            
             </div>
 
             <button
@@ -448,6 +473,7 @@ const FillerWords = () => {
           
           {/* Right side */}
           <div className="w-full flex flex-col">
+
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4 overflow-x-auto">
               {/* Record & Analyze Tab */}
               <button
@@ -498,12 +524,31 @@ const FillerWords = () => {
                     </div>
                   </div>
 
+                  {audioDuration && (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] text-white">
+                        <span className="text-sm lg:text-lg font-semibold mr-2">⏱️ Duration:</span>
+                        <span className="text-lg lg:text-xl font-bold">{audioDuration.toFixed(2)} s</span>
+                      </div>
+                    </div>
+                  )}
+
                   {recordedAt && (
                     <div className="mb-4">
                       <div className="flex items-center justify-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] text-white">
-                        <span className="text-sm lg:text-lg font-semibold mr-2">Date:</span>
+                        <span className="text-sm lg:text-lg font-semibold mr-2">📅 Date:</span>
                         <span className="text-lg lg:text-xl font-bold">{formatDateTime(recordedAt)}</span>
                       </div>
+                    </div>
+                  )}
+
+                  {audioURL && (
+                    <div className="mt-4 mb-4">
+                      <h4 className="text-md font-semibold text-[#00ccff] mb-2">🔊 Playback</h4>
+                      <audio controls className="w-full rounded-lg">
+                        <source src={audioURL} type="audio/wav" />
+                        Your browser does not support the audio element.
+                      </audio>
                     </div>
                   )}
 
@@ -545,21 +590,21 @@ const FillerWords = () => {
                   Saved Recordings
                 </h2>
                 {savedRecs.length > 0 ? (
-                  <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                  <div className="overflow-x-auto rounded-lg border border-white/20 shadow-sm bg-white/10 backdrop-blur-sm">
                     <table className="min-w-full text-sm text-left">
-                      <thead className="bg-gray-100 text-gray-700">
+                      <thead className="bg-white/20 text-white">
                         <tr>
-                          <th className="px-4 py-2 border">Date</th>
-                          <th className="px-4 py-2 border">Filler Count</th>
-                          <th className="px-4 py-2 border">Duration (s)</th>
+                          <th className="px-4 py-2 border border-white/30">Date</th>
+                          <th className="px-4 py-2 border border-white/30">Filler Count</th>
+                          <th className="px-4 py-2 border border-white/30">Duration (s)</th>
                         </tr>
                       </thead>
                       <tbody>
                         {savedRecs.map((rec) => (
-                          <tr key={rec._id} className="text-gray-800 hover:bg-gray-50">
-                            <td className="border px-4 py-2">{formatDateTime(rec.date)}</td>
-                            <td className="border px-4 py-2">{rec.fillerCount}</td>
-                            <td className="border px-4 py-2">{rec.duration.toFixed(2)}</td>
+                          <tr key={rec._id} className="text-white hover:bg-white/20 transition-colors">
+                            <td className="border border-white/30 px-4 py-2">{formatDateTime(rec.date)}</td>
+                            <td className="border border-white/30 px-4 py-2">{rec.fillerCount}</td>
+                            <td className="border border-white/30 px-4 py-2">{rec.duration.toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>

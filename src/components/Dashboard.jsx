@@ -25,7 +25,6 @@ import {
 const Dashboard = () => {
   const user = getCurrentUser();
   const [fillerHistory, setFillerHistory] = useState([]);
-  const [badges, setBadges] = useState([]);
   const [loudnessScores, setLoudnessScores] = useState([]);
   const [loudnessExercises, setLoudnessExercises] = useState([]);
   const [paceSessions, setPaceSessions] = useState([]);
@@ -49,7 +48,6 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setFillerHistory(fillerRes.data.history || []);
-      setBadges(fillerRes.data.badges || []);
 
       // Fetch loudness scores
       const scoresRes = await axios.get("http://localhost:3001/api/scores", {
@@ -873,26 +871,6 @@ const Dashboard = () => {
                   )}
                 </div>
 
-                {/* Badges Section */}
-                {badges.length > 0 && (
-                  <div className="mt-6 pt-4 border-t border-white/20">
-                    <h4 className="text-[#00ccff] font-semibold text-lg mb-3 text-center">🏅 Badges</h4>
-                    <div className="flex gap-3 justify-center flex-wrap">
-                      {badges.map((badge, index) => (
-                        <motion.div
-                          key={badge.name}
-                          className="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-yellow-300 to-yellow-500 shadow-lg border-2 border-yellow-600 text-center transform transition duration-300 hover:scale-110"
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.5, delay: index * 0.1 }}
-                        >
-                          <span className="text-2xl mb-1">🥇</span>
-                          <span className="text-xs font-bold text-gray-800">{badge.name}</span>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </motion.div>
             </div>

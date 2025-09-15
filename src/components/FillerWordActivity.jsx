@@ -17,6 +17,7 @@ const FillerWordActivity = () => {
   const [challenges, setChallenges] = useState([]);
   const [currentLevel, setCurrentLevel] = useState(null);
   const [history, setHistory] = useState([]);
+  const [badges, setBadges] = useState([]);
 
   const [selectedChallenge, setSelectedChallenge] = useState(null);
 
@@ -49,6 +50,7 @@ const FillerWordActivity = () => {
 
       setChallenges(userChallenges);
       setHistory(res.data.history || []);
+      setBadges(res.data.badges || []);
 
       const nextLevel = userChallenges.find((c) => !c.completed) || null;
       setCurrentLevel(nextLevel);
@@ -263,8 +265,8 @@ const FillerWordActivity = () => {
   }, [isRecording, isPaused]);
 
   return (
-    <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] p-4 lg:p-8 flex justify-center items-center">
-      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-6">
+    <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] h-[calc(100vh-4rem)] p-4 lg:p-8 flex justify-center items-center">
+      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-6 overflow-hidden">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Left: Recorder (sticky on xl) */}
           <div className="xl:col-span-1">
@@ -401,6 +403,32 @@ const FillerWordActivity = () => {
               >
                 {isLoading ? "⏳ Analyzing..." : "⬆ Upload & Analyze"}
               </button>
+
+              {/* Badges Section */}
+              {badges.length > 0 && (
+                <motion.div
+                  className="mt-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-2xl p-4 border-2 border-[#00ccff]/60 shadow-xl"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                >
+                  <h3 className="text-[#00ccff] font-semibold text-base lg:text-lg mb-3 text-center">🏅 Earned Badges</h3>
+                  <div className="flex gap-2 sm:gap-3 justify-center flex-wrap">
+                    {badges.map((badge, index) => (
+                      <motion.div
+                        key={badge.name}
+                        className="flex flex-col items-center justify-center w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-gradient-to-r from-yellow-300 to-yellow-500 shadow-lg border-2 border-yellow-600 text-center transform transition duration-300 hover:scale-110"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                      >
+                        <span className="text-lg sm:text-xl lg:text-2xl mb-0.5 sm:mb-1">🥇</span>
+                        <span className="text-[8px] sm:text-[10px] lg:text-xs font-bold text-gray-800 leading-tight text-center px-1 break-words">{badge.name}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
             </div>
           </div>
 
@@ -495,8 +523,12 @@ const FillerWordActivity = () => {
           {selectedChallenge && (
             <div className="fixed inset-0 flex items-center justify-center z-50 text-black">
               <div
-                className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/20 backdrop-blur-lg"
                 onClick={() => setSelectedChallenge(null)}
+                style={{
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)'
+                }}
               ></div>
 
               <div className="relative bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full z-10">
@@ -530,7 +562,7 @@ const FillerWordActivity = () => {
 
                 <button
                   onClick={() => setSelectedChallenge(null)}
-                  className="mt-6 w-full bg-[#0084a6] text-white py-2 rounded-lg hover:bg-[#00a8cc] transition"
+                  className="mt-6 w-full bg-[#0084a6] text-black py-2 rounded-lg hover:bg-[#00a8cc] transition font-semibold"
                 >
                   Close
                 </button>
