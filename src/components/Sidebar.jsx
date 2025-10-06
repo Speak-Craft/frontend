@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaCamera, FaClock, FaMicrophone, FaChartLine, FaPause, FaQuestion, FaList } from "react-icons/fa";
+import { FaCamera, FaClock, FaMicrophone, FaChartLine, FaPause, FaQuestion, FaList, FaPodcast } from "react-icons/fa";
 import { BiSolidVideoRecording } from "react-icons/bi";
 import { MdDashboardCustomize, MdCoPresent } from "react-icons/md";
 import logo from "../assets/images/logo.png"; // Replace with actual path
@@ -13,7 +13,8 @@ const Sidebar = () => {
 
   const menuItems = [
     { name: "Dashboard", icon: <MdDashboardCustomize className="text-xl" />, path: "/dashboard" },
-    { name: "Face Detection", icon: <FaCamera className="text-xl" />, path: "/face-detection" },
+    { name: "SpeaKraft Insights", icon: <FaPodcast className="text-xl" />, path: "/speech-insights" },
+    { name: "Face Detection", icon: <FaCamera className="text-xl" />, path: "/emotion-analysis-home" },
     { name: "Pace Management", icon: <FaPause className="text-xl" />, path: "/pace-management-landing" },
     { name: "Filler Words", icon: <FaMicrophone className="text-xl" />, path: "/filler-words-landing" },
     { name: "Loudness Variation", icon: <FaChartLine className="text-xl" />, path: "/loudness-variation-landing" },
@@ -47,6 +48,13 @@ const Sidebar = () => {
         "/loudness-variation-landing",
         "/loudness-practice",
         "/loudness-activities",
+      ];
+      return activePaths.some((p) => current.startsWith(p));
+    }
+    if (itemPath === "/emotion-analysis-home") {
+      const activePaths = [
+        "/emotion-analysis-home",
+        "/emotion-analysis",
       ];
       return activePaths.some((p) => current.startsWith(p));
     }

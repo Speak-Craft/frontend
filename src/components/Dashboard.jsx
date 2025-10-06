@@ -727,7 +727,7 @@ const Dashboard = () => {
                   whileTap={{ scale: 0.95 }}
                 >
                   <Link 
-                    to="/emotion-analysis" 
+                    to="/emotion-analysis-home" 
                     className="block group relative overflow-hidden bg-gradient-to-br from-[#ec4899] via-[#db2777] to-[#be185d] rounded-2xl p-6 shadow-2xl hover:shadow-[#ec4899]/25 transition-all duration-500 border-2 border-transparent hover:border-[#ec4899]/50"
                   >
                     {/* Animated Background */}
