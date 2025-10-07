@@ -1,41 +1,847 @@
+UI FACE Analysis TAb
 
-The System Analysis phase is essential in defining the structure, features, and requirements of the Emotionally-Aware Presentation Analyzer, a component of the SpeaKraft platform. The primary aim of this module is to help Sri Lankan undergraduates improve their presentation skills by evaluating whether their facial emotions are visible, consistent, and aligned with the spoken content. By addressing the limitations of traditional training approaches that provide feedback only on speech clarity or filler words, this system seeks to bridge the gap in emotional awareness and delivery that is often overlooked in presentation skill development.
+// UIFaceAnalyzer.jsx – stricter live alignment (frontend-only), smoothing, strict mode, better tips
+import React, { useState, useRef, useEffect } from 'react';
+import Webcam from 'react-webcam';
+import { Bar } from 'react-chartjs-2';
+import Chart from 'chart.js/auto';
+import './UIFaceAnalyzer.css';
 
-A central aspect of this system analysis is identifying the functional requirements that the module must incorporate in order to be effective. These requirements include a reliable mechanism for continuous face detection and visibility tracking, a robust CNN-based emotion recognition model capable of classifying facial expressions with high accuracy, and an NLP-driven content analysis module that interprets the tone and context of the presentation text. By combining these components, the system will be able to assess not only the emotions expressed by the presenter but also whether those emotions are congruent with the content being delivered. The system will also provide a post-presentation analytical report, summarizing visibility, emotional timelines, congruence scores, and targeted recommendations for improvement.
-In terms of development methodology, the system will follow an iterative and incremental approach, ensuring that feedback from test users—primarily undergraduate students and academic supervisors—can be integrated throughout the design and implementation stages. This participatory process will help refine the system so that it remains culturally relevant, technically accurate, and pedagogically valuable. Stakeholder engagement will be particularly important, as feedback from students and educators will guide adjustments to ensure usability, clarity of reports, and alignment with real presentation scenarios.
-The system will need to incorporate several core features to achieve its objectives. First, the face visibility tracker will ensure that the presenter remains within the camera frame, as partial or inconsistent visibility reduces audience engagement. Second, the emotion recognition engine will classify emotions such as happiness, sadness, anger, fear, surprise, and neutrality using CNN models adapted through transfer learning for Sri Lankan undergraduates. Third, the content-emotion alignment module will compare the expected tone of the presentation text with the detected emotional state to determine whether delivery was authentic and appropriate. Together, these features will provide a comprehensive assessment of emotional delivery.
-Beyond analysis, the system will include real-time and post-presentation feedback mechanisms. During live presentations, optional alerts will notify presenters if their face is not visible or if emotional mismatches occur, allowing for immediate correction. At the end of the presentation, an analytics dashboard and exportable report will present detailed metrics, including emotion timelines, congruence heatmaps, visibility percentages, and personalized improvement tips. This dual feedback approach ensures that students can learn both in the moment and through reflective practice afterward.
-The implementation strategy will unfold in several stages. Initially, a prototype of the Analyzer will be developed and tested in controlled environments using small groups of students. Feedback during this phase will be used to refine the accuracy of detection models and the clarity of reports. Once validated, the system will undergo larger-scale pilot testing in university classrooms and presentation workshops. This staged implementation will ensure that the system integrates smoothly into academic contexts and genuinely supports the improvement of undergraduate presentation skills.
-Ultimately, the educational impact of this system lies at the heart of the analysis. By focusing on face visibility, emotional recognition, and emotion-content alignment, the Emotionally-Aware Presentation Analyzer aims to create a structured, culturally adapted, and technologically advanced environment for presentation training. Its feedback mechanisms will not only make students aware of their emotional delivery but will also provide clear pathways for improvement. In doing so, the system seeks to help Sri Lankan undergraduates build confidence, authenticity, and professionalism in their communication, bridging the gap between content knowledge and effective delivery.
+const BACKEND_ANALYZE = 'http://localhost:5000/analyze';
+const BACKEND_FRAME   = 'http://localhost:5000/analyze_frame';
+const EMOTIONS       = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise'];
+const TARGETS        = ['Happy', 'Neutral', 'Confident', 'Calm', 'Empathetic', 'Serious'];
+
+/* Affect map for client alignment */
+const AFFECT = {
+  Angry:    { v: -0.6, e:  0.9 },
+  Disgust:  { v: -0.8, e:  0.6 },
+  Fear:     { v: -0.7, e:  0.7 },
+  Happy:    { v:  0.8, e:  0.8 },
+  Neutral:  { v:  0.1, e:  0.2 },
+  Sad:      { v: -0.8, e:  0.2 },
+  Surprise: { v:  0.4, e:  0.8 },
+};
+
+const TARGET_VEC = {
+  Happy:       { v: 0.75, e: 0.75 },
+  Neutral:     { v: 0.1,  e: 0.25 },
+  Confident:   { v: 0.55, e: 0.65 },
+  Calm:        { v: 0.35, e: 0.35 },
+  Empathetic:  { v: 0.45, e: 0.4  },
+  Serious:     { v: 0.15, e: 0.45 },
+};
+
+/* ---------- Stronger text emotion inference (keyword model + negation + intensity) ---------- */
+const KW = {
+  Sad: [
+    'sad','cry','tears','loss','lost','grief','grieving','passed away','funeral','lonely','alone','empty','hurt',
+    'heartbroken','pain','miss you','regret','mourn','sorrow','devastated'
+  ],
+  Happy: [
+    'happy','joy','smile','excited','delight','glad','cheer','proud','celebrate','win','won','great news','thanks',
+    'grateful','relieved','blessed','hurray'
+  ],
+  Angry: [
+    'angry','mad','furious','hate','rage','annoyed','irritated','upset','frustrated','unfair','betrayed','disgusting','disgrace'
+  ]
+};
+const NEGATIONS = ['not','never','no','hardly','barely','scarcely','without',"isn't","wasn't","don't","didn't","can't","won't"];
+const INTENSE   = ['very','so','extremely','really','too','incredibly','super','utterly','deeply','truly'];
+
+function scoreBag(text) {
+  const t = text.toLowerCase();
+  let sc = { Sad: 0, Happy: 0, Angry: 0 };
+  const words = t.split(/\b/).map(w => w.trim()).filter(Boolean);
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    Object.entries(KW).forEach(([emo, list]) => {
+      if (list.some(k => t.includes(k))) {
+        // proximity-based boost with negation + intensity window
+        const winStart = Math.max(0, i - 3), winEnd = Math.min(words.length - 1, i + 3);
+        const win = words.slice(winStart, winEnd + 1);
+        const neg = win.some(x => NEGATIONS.includes(x));
+        const amp = 1 + 0.3 * win.filter(x => INTENSE.includes(x)).length;
+        sc[emo] += neg ? 0 : amp;
+      }
+    });
+  }
+  return sc;
+}
+function inferTextEmotion(text) {
+  if (!text || !text.trim()) return { label: 'Neutral', confidence: 0.55 };
+  const sc = scoreBag(text);
+  const entries = Object.entries(sc).sort((a,b)=>b[1]-a[1]);
+  const [top, val] = entries[0];
+  if (val === 0) return { label: 'Neutral', confidence: 0.6 };
+  const sum = entries.reduce((s, [,v]) => s+v, 0) || 1;
+  const conf = Math.min(0.95, 0.6 + 0.4 * (val / sum)); // 0.6..0.95
+  return { label: top, confidence: conf };
+}
+
+/* ---------- Math helpers ---------- */
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+function mixToVector(mix) {
+  const entries = Object.entries(mix);
+  if (!entries.length) return { v: 0.1, e: 0.1 };
+  let V = 0, E = 0, sum = 0;
+  entries.forEach(([emo, pct]) => {
+    const a = AFFECT[emo]; if (!a) return;
+    const w = clamp01((Number(pct)||0)/100);
+    V += a.v * w; E += a.e * w; sum += w;
+  });
+  if (sum === 0) return { v: 0.1, e: 0.1 };
+  return { v: V / sum, e: E / sum };
+}
+
+function scoreAlignmentClient(mix, target) {
+  const tgt = TARGET_VEC[target] || TARGET_VEC['Confident'];
+  const obs = mixToVector(mix);
+  const dv = Math.abs(tgt.v - obs.v);
+  const de = Math.abs(tgt.e - obs.e);
+  const dist = Math.sqrt(dv*dv + de*de); // 0..~1.6
+  return Math.round(clamp01(1 - dist / 1.6) * 100);
+}
+
+/* ---------- UI Component ---------- */
+export default function UIFaceAnalyzer() {
+  // --- state
+  const [isRecording, setIsRecording] = useState(false);
+  const [videoBlob, setVideoBlob] = useState(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [recordingStopped, setRecordingStopped] = useState(false);
+  const [serverError, setServerError] = useState('');
+
+  const [ferEmotions, setFerEmotions] = useState({});
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [visibleSeconds, setVisibleSeconds] = useState(0);
+  const [awaySeconds, setAwaySeconds] = useState(0);
+  const [startTime, setStartTime] = useState(0);
+  const [endTime, setEndTime] = useState(0);
+  const [annotatedUrl, setAnnotatedUrl] = useState('');
+  const [summaryTop3, setSummaryTop3] = useState([]);
+
+  // coaching / alignment
+  const [coachSummary, setCoachSummary] = useState('');
+  const [coachScore, setCoachScore] = useState(null);
+  const [coachStrengths, setCoachStrengths] = useState([]);
+  const [coachAreas, setCoachAreas] = useState([]);
+  const [coachTips, setCoachTips] = useState([]);
+  const [coachMoments, setCoachMoments] = useState([]);
+  const [coachEntropy, setCoachEntropy] = useState(null);
+  const [coachSwitches, setCoachSwitches] = useState(null);
+
+  // NEW: target & intent & script
+  const [targetEmotion, setTargetEmotion] = useState(
+    localStorage.getItem('ea_targetEmotion') || 'Confident'
+  );
+  const [intentText, setIntentText] = useState(localStorage.getItem('ea_intentText') || '');
+  const [scriptText, setScriptText] = useState(localStorage.getItem('ea_scriptText') || '');
+
+  // NEW: strict + smoothing controls
+  const [strictMode, setStrictMode] = useState(localStorage.getItem('ea_strictMode') === '1');
+  const [windowSec, setWindowSec] = useState(Number(localStorage.getItem('ea_windowSec') || 3));
+  const [emaAlpha, setEmaAlpha] = useState(Number(localStorage.getItem('ea_emaAlpha') || 0.4));
+
+  // Live aggregates
+  const [liveTop, setLiveTop] = useState(null);
+  const [liveProbs, setLiveProbs] = useState({});
+  const [liveSamples, setLiveSamples] = useState(0);
+  const emaRef = useRef({});               // EMA smoothing per label
+  const framesRef = useRef([]);            // {t, probs} rolling
+  const lastFlagRef = useRef(0);           // last mismatch second flagged (debounce)
+
+  // refs
+  const webcamRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const timerRef = useRef(null);
+  const liveRef = useRef(null);
+  const activeStreamRef = useRef(null);
+
+  // effects
+  useEffect(() => {
+    if (isRecording) timerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000);
+    else clearInterval(timerRef.current);
+    return () => clearInterval(timerRef.current);
+  }, [isRecording]);
+
+  useEffect(() => {
+    if (recordingStopped && videoBlob) analyzeVideo();
+  }, [recordingStopped, videoBlob]);
+
+  useEffect(() => {
+    return () => {
+      try { if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') mediaRecorderRef.current.stop(); } catch {}
+      if (activeStreamRef.current) activeStreamRef.current.getTracks().forEach(t => t.stop());
+      clearInterval(liveRef.current);
+    };
+  }, []);
+
+  // persist settings
+  useEffect(() => { localStorage.setItem('ea_targetEmotion', targetEmotion); }, [targetEmotion]);
+  useEffect(() => { localStorage.setItem('ea_intentText', intentText); }, [intentText]);
+  useEffect(() => { localStorage.setItem('ea_scriptText', scriptText); }, [scriptText]);
+  useEffect(() => { localStorage.setItem('ea_strictMode', strictMode ? '1' : '0'); }, [strictMode]);
+  useEffect(() => { localStorage.setItem('ea_windowSec', String(windowSec)); }, [windowSec]);
+  useEffect(() => { localStorage.setItem('ea_emaAlpha', String(emaAlpha)); }, [emaAlpha]);
+
+  // helpers
+  const resetForNewRecording = () => {
+    setRecordingTime(0);
+    setFerEmotions({});
+    setFaceDetected(false);
+    setVisibleSeconds(0);
+    setAwaySeconds(0);
+    setStartTime(0);
+    setEndTime(0);
+    setRecordingStopped(false);
+    setServerError('');
+    setVideoBlob(null);
+    setLiveTop(null);
+    setLiveProbs({});
+    setLiveSamples(0);
+    setSummaryTop3([]);
+    setAnnotatedUrl('');
+
+    setCoachSummary('');
+    setCoachScore(null);
+    setCoachStrengths([]);
+    setCoachAreas([]);
+    setCoachTips([]);
+    setCoachMoments([]);
+    setCoachEntropy(null);
+    setCoachSwitches(null);
+
+    emaRef.current = {};
+    framesRef.current = [];
+    lastFlagRef.current = 0;
+  };
+
+  // actions
+  const startRecording = async () => {
+    if (isRecording) return;
+    try {
+      resetForNewRecording();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: true
+      });
+      activeStreamRef.current = stream;
+
+      if (webcamRef.current?.video) {
+        webcamRef.current.video.srcObject = stream;
+        await webcamRef.current.video.play().catch(() => {});
+      }
+
+      const mime =
+        MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' :
+        MediaRecorder.isTypeSupported('video/webm;codecs=vp8')      ? 'video/webm;codecs=vp8' :
+        MediaRecorder.isTypeSupported('video/webm')                  ? 'video/webm' : undefined;
+
+      mediaRecorderRef.current = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 128000 } : undefined);
+      chunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        setVideoBlob(blob);
+        if (activeStreamRef.current) {
+          activeStreamRef.current.getTracks().forEach(t => t.stop());
+          activeStreamRef.current = null;
+        }
+        clearInterval(liveRef.current);
+      };
+
+      mediaRecorderRef.current.start(250);
+      setIsRecording(true);
+
+      liveRef.current = setInterval(sendLiveFrame, 650); // ~1.5 fps
+    } catch (e) {
+      console.error('startRecording error:', e);
+      setServerError('Could not access camera/mic. Allow permissions or try another browser.');
+      setIsRecording(false);
+      if (activeStreamRef.current) {
+        activeStreamRef.current.getTracks().forEach(t => t.stop());
+        activeStreamRef.current = null;
+      }
+    }
+  };
+
+  const stopRecording = () => {
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
+    try { mediaRecorderRef.current.stop(); } catch {}
+    setIsRecording(false);
+    setRecordingStopped(true);
+    setLoading(true);
+
+    // Finalize avg FER
+    if (framesRef.current.length > 0) {
+      const sum = {};
+      let n = 0;
+      framesRef.current.forEach(({ probs }) => {
+        EMOTIONS.forEach(e => { sum[e] = (sum[e]||0) + (probs[e]||0); });
+        n++;
+      });
+      const avgPct = {};
+      EMOTIONS.forEach(e => { avgPct[e] = n ? +(sum[e] / n).toFixed(1) : 0; });
+      setFerEmotions(avgPct);
+      const sorted = Object.entries(avgPct).sort((a, b) => b[1] - a[1]);
+      setSummaryTop3(sorted.slice(0, 3));
+    }
+  };
+
+  // EMA smoothing for live probs
+  const smooth = (probs) => {
+    const out = {};
+    EMOTIONS.forEach(k => {
+      const prev = emaRef.current[k] ?? probs[k] ?? 0;
+      const x = probs[k] ?? 0;
+      const y = emaAlpha * x + (1 - emaAlpha) * prev;
+      emaRef.current[k] = y;
+      out[k] = y;
+    });
+    return out;
+  };
+
+  // live frame
+  const sendLiveFrame = async () => {
+    try {
+      if (!webcamRef.current) return;
+      const dataUrl = webcamRef.current.getScreenshot();
+      if (!dataUrl) return;
+
+      const res  = await fetch(dataUrl);
+      const blob = await res.blob();
+
+      const form = new FormData();
+      form.append('frame', blob, 'frame.jpg');
+
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 5000);
+
+      const r = await fetch(BACKEND_FRAME, { method: 'POST', body: form, signal: ctrl.signal });
+      clearTimeout(t);
+      if (!r.ok) return;
+      const j = await r.json();
+
+      if (j.face_detected) {
+        setFaceDetected(true);
+        // smooth + keep window
+        const sm = smooth(j.probs || {});
+        const now = recordingTime;
+        framesRef.current.push({ t: now, probs: sm });
+        // keep only last windowSec seconds
+        const cutoff = now - windowSec;
+        framesRef.current = framesRef.current.filter(f => f.t >= cutoff);
+
+        // current dominant over window
+        const agg = {};
+        framesRef.current.forEach(({ probs }) => {
+          EMOTIONS.forEach(e => { agg[e] = (agg[e]||0) + (probs[e]||0); });
+        });
+        const denom = framesRef.current.length || 1;
+        const avg = {};
+        EMOTIONS.forEach(e => avg[e] = +( (agg[e]||0) / denom ).toFixed(1) );
+        setLiveProbs(avg);
+
+        const dom = Object.entries(avg).sort((a,b)=>b[1]-a[1])[0] || ['Neutral', 0];
+        setLiveTop(dom[0]);
+        setLiveSamples(s => s + 1);
+
+        // LIVE strict mismatch detector
+        const { label: expectedLabel } = inferTextEmotion(scriptText);
+        if (expectedLabel) {
+          const detectedLabel = dom[0];
+          const detectedConf  = dom[1]; // 0..100
+          const strong = detectedConf >= 40; // window-avg confidence threshold
+          const hardMismatch =
+            (expectedLabel === 'Sad' && detectedLabel === 'Happy') ||
+            (expectedLabel === 'Happy' && (detectedLabel === 'Sad' || detectedLabel === 'Angry')) ||
+            (expectedLabel === 'Angry' && (detectedLabel === 'Happy' || detectedLabel === 'Neutral'));
+
+          const shouldFlag = strictMode
+            ? (expectedLabel !== detectedLabel && strong)
+            : (hardMismatch && strong);
+
+          // debounce: flag at most once each 2s
+          if (shouldFlag && now - lastFlagRef.current >= 2) {
+            lastFlagRef.current = now;
+            const suggestion = buildMismatchSuggestion(expectedLabel, detectedLabel);
+            setCoachMoments(prev => [
+              ...prev,
+              {
+                type: 'text_face_mismatch',
+                time: now,
+                text: clip(scriptText, 140),
+                expected: expectedLabel,
+                detected: detectedLabel,
+                prob: detectedConf/100,
+                label: 'Text–Face mismatch',
+                suggestion
+              }
+            ]);
+          }
+        }
+      } else {
+        setFaceDetected(false);
+        setLiveTop(null);
+        setLiveProbs({});
+      }
+    } catch {}
+  };
+
+  // Suggestions for mismatches (concrete actions)
+  function buildMismatchSuggestion(expected, detected) {
+    if (expected === 'Sad' && detected === 'Happy') {
+      return 'Lower smile intensity, soften cheeks, relax eyebrows; slow tempo and reduce pitch rise at sentence ends.';
+    }
+    if (expected === 'Happy' && (detected === 'Sad' || detected === 'Angry')) {
+      return 'Add gentle smile, brighten eyes; raise pitch ~20–40 cents and add upbeat stress on positive keywords.';
+    }
+    if (expected === 'Angry' && (detected === 'Happy' || detected === 'Neutral')) {
+      return 'Tighten jaw subtly, firm brow; punch key words with shorter vowels; reduce smiling micro-expressions.';
+    }
+    // generic
+    return 'Align face with meaning: adjust eyebrows/jaw + pacing to match the text emotion.';
+  }
+
+  const clip = (s, n) => (s && s.length > n ? s.slice(0, n - 1) + '…' : s || '');
+
+  // analyze video (backend full report + client tips)
+  const analyzeVideo = async () => {
+    if (!videoBlob) { setLoading(false); setServerError('No recording captured.'); return; }
+
+    // calculate simple visible/away based on whether we had face in last frames
+    // (kept your existing fields; here we just ensure they’re set)
+    setStartTime(0); setEndTime(recordingTime);
+
+    const formData = new FormData();
+    formData.append('video', videoBlob, 'recorded_video.webm');
+    formData.append('target_emotion', targetEmotion);
+    formData.append('intent_text', intentText || '');
+
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 120000);
+
+    try {
+      setServerError('');
+      const res  = await fetch(BACKEND_ANALYZE, { method: 'POST', body: formData, signal: ctrl.signal });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `Server error (${res.status})`);
+
+      setFerEmotions(data.fer_emotions || ferEmotions);
+      const t3 =
+        data?.coaching?.metrics?.top3
+          ? data.coaching.metrics.top3
+          : Object.entries(data.fer_emotions || ferEmotions).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      setSummaryTop3(t3);
+
+      setVisibleSeconds(Number(data.visible_seconds || visibleSeconds));
+      setAwaySeconds(Number(data.away_seconds || awaySeconds));
+      setAnnotatedUrl(data.annotated_url ? `http://localhost:5000${data.annotated_url}` : '');
+
+      setCoachSummary(data?.coaching?.summary || coachSummary);
+      setCoachScore(typeof data?.coaching?.score === 'number' ? data.coaching.score : coachScore);
+      setCoachStrengths(Array.isArray(data?.coaching?.strengths) ? data.coaching.strengths : coachStrengths);
+      setCoachAreas(Array.isArray(data?.coaching?.areas_to_improve) ? data.coaching.areas_to_improve : coachAreas);
+      setCoachTips(
+        Array.isArray(data?.coaching?.tips) && data.coaching.tips.length
+          ? data.coaching.tips
+          : coachTips
+      );
+      setCoachMoments(prev => {
+        const m = Array.isArray(data?.coaching?.moments_to_review) ? data.coaching.moments_to_review : [];
+        return [...prev, ...m];
+      });
+      setCoachEntropy(typeof data?.coaching?.metrics?.entropy === 'number' ? data.coaching.metrics.entropy : coachEntropy);
+      setCoachSwitches(typeof data?.coaching?.metrics?.switches_per_min === 'number' ? data.coaching.metrics.switches_per_min : coachSwitches);
+
+      // Add client tips if backend didn’t provide
+      if (!data?.coaching?.tips?.length) {
+        const extra = buildAlignmentTips(data.fer_emotions || ferEmotions, targetEmotion, intentText);
+        if (extra.length) setCoachTips(prev => [...prev, ...extra]);
+      }
+    } catch (err) {
+      console.error('Analysis error:', err);
+      setServerError(String(err.message || err));
+    } finally {
+      clearTimeout(to);
+      setLoading(false);
+    }
+  };
+
+  function buildAlignmentTips(mix, target, intentText) {
+    const tips = [];
+    const tgt = TARGET_VEC[target] || TARGET_VEC['Confident'];
+    const obs = mixToVector(mix);
+    const deltaE = tgt.e - obs.e;
+    const deltaV = tgt.v - obs.v;
+
+    if (deltaE > 0.2) tips.push('Energy below target: increase tempo slightly, lift volume 5–10%, add hand gestures.');
+    if (deltaE < -0.25) tips.push('Energy above target: slow pacing, add brief pauses, soften volume.');
+    if (deltaV > 0.2) tips.push('Sound warmer: smile lightly on key points, brighten pitch ending, relax eyebrows.');
+    if (deltaV < -0.25) tips.push('Tone too negative: reduce frown tension, avoid clipped endings, add positive reframe.');
+
+    const neutral = Number(mix.Neutral || 0);
+    if (neutral > 55 && target !== 'Serious') tips.push('Too much Neutral—layer more expressiveness; vary pitch and stress keywords.');
+    const anger = Number(mix.Angry || 0) + Number(mix.Disgust || 0);
+    if (anger > 15 && target !== 'Serious') tips.push('Trace of negative affect—soften jaw/forehead; extend vowels on positives.');
+
+    if (intentText && intentText.length > 12) {
+      tips.push(`Map emotion to intent: emphasize 1–2 keywords (“${intentText.split(/\s+/).slice(0,4).join(' ')}…”) with clear stress.`);
+    }
+    return tips;
+  }
+
+  // visuals
+  const ferChart = {
+    labels: Object.keys(ferEmotions),
+    datasets: [{
+      label: 'Facial Emotions (%)',
+      data: Object.values(ferEmotions),
+      backgroundColor: ['#f44336', '#ff9800', '#2196f3', '#4caf50', '#9c27b0', '#00bcd4', '#ffeb3b'],
+    }],
+  };
+
+  const engagementPercentage = typeof coachScore === 'number'
+    ? coachScore
+    : Math.round((visibleSeconds / (visibleSeconds + awaySeconds || 1)) * 100);
+
+  const clientAlignment = scoreAlignmentClient(ferEmotions, targetEmotion);
+
+  const angle = Math.PI * (1 - engagementPercentage / 100);
+  const needleX = 100 + 80 * Math.cos(angle);
+  const needleY = 100 - 80 * Math.sin(angle);
+
+  const expectedTextEmotion = inferTextEmotion(scriptText);
+  const detectedNow = liveTop || (summaryTop3?.[0]?.[0] ?? '—');
+  const detectedNowConf = detectedNow && liveProbs[detectedNow] != null ? Math.round(liveProbs[detectedNow]) : null;
+  const mismatchNow = expectedTextEmotion.label && detectedNow && expectedTextEmotion.label !== detectedNow;
+
+  return (
+    <div className="fixed inset-0 bg-[#01262b] overflow-hidden">
+      <div className="absolute top-3 right-3 bottom-3 left-72">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-full">
+          {/* LEFT PANEL */}
+          <div className="bg-[#014753] rounded-2xl shadow-lg p-4 flex flex-col h-full min-h-0">
+            <h2 className="text-base font-semibold text-white text-center">Live Camera</h2>
+
+            {/* Controls row: target + intent + strict/smoothing */}
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div className="bg-[#01333a] rounded-lg p-2 flex items-center gap-2">
+                <label className="text-xs text-white/80 shrink-0">Target</label>
+                <select
+                  value={targetEmotion}
+                  onChange={(e) => setTargetEmotion(e.target.value)}
+                  className="flex-1 bg-black/20 rounded-md px-2 py-1 text-xs outline-none"
+                >
+                  {TARGETS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="bg-[#01333a] rounded-lg p-2 flex items-center gap-2">
+                <label className="text-xs text-white/80 shrink-0">Strict</label>
+                <input
+                  type="checkbox"
+                  checked={strictMode}
+                  onChange={(e)=>setStrictMode(e.target.checked)}
+                  className="accent-emerald-400"
+                  title="100% alignment mode"
+                />
+                <label className="text-xs text-white/80 shrink-0 ml-2">Win</label>
+                <input
+                  type="number" min={2} max={8} step={1}
+                  value={windowSec}
+                  onChange={(e)=>setWindowSec(Math.max(2, Math.min(8, Number(e.target.value)||3)))}
+                  className="w-12 bg-black/20 rounded-md px-1 py-0.5 text-xs outline-none"
+                  title="Sliding window seconds"
+                />
+                <label className="text-xs text-white/80 shrink-0 ml-2">EMA</label>
+                <input
+                  type="number" min={0.1} max={0.8} step={0.05}
+                  value={emaAlpha}
+                  onChange={(e)=>setEmaAlpha(Math.max(0.1, Math.min(0.8, Number(e.target.value)||0.4)))}
+                  className="w-14 bg-black/20 rounded-md px-1 py-0.5 text-xs outline-none"
+                  title="Smoothing α"
+                />
+              </div>
+              <div className="bg-[#01333a] rounded-lg p-2">
+                <input
+                  value={intentText}
+                  onChange={(e) => setIntentText(e.target.value)}
+                  placeholder="Section intent (optional)"
+                  className="w-full bg-black/20 rounded-md px-2 py-1 text-xs outline-none placeholder:text-white/50"
+                />
+              </div>
+            </div>
+
+            {/* Script input */}
+            <div className="bg-[#01333a] rounded-lg p-2 mt-2">
+              <textarea
+                value={scriptText}
+                onChange={(e) => setScriptText(e.target.value)}
+                placeholder="Paste the line or paragraph you will read..."
+                className="w-full h-16 bg-black/20 rounded-md px-2 py-1 text-xs outline-none placeholder:text-white/50"
+              />
+              <div className="mt-1 text-[11px] text-white/65">
+                Expected from text: <b>{expectedTextEmotion.label}</b> ({Math.round(expectedTextEmotion.confidence*100)}% conf)
+              </div>
+            </div>
+
+            {/* Webcam */}
+            <div className="mt-2 w-full rounded-xl overflow-hidden bg-black/20 aspect-video relative">
+              {/* Live mismatch banner */}
+              {mismatchNow && faceDetected && (
+                <div className="absolute top-2 left-2 right-2 z-10 text-xs bg-red-600/80 text-white px-2 py-1 rounded">
+                  ❌ Mismatch now: Text expects <b>{expectedTextEmotion.label}</b>, face shows <b>{detectedNow}</b>
+                  {detectedNowConf != null ? <> ({detectedNowConf}%)</> : null}
+                </div>
+              )}
+              <Webcam
+                ref={webcamRef}
+                audio={false}
+                screenshotFormat="image/jpeg"
+                className="w-full h-full object-cover"
+                videoConstraints={{ facingMode: 'user' }}
+              />
+            </div>
+
+            {/* Controls */}
+            <div className="mt-2 flex flex-col items-center">
+              <div className="flex gap-2">
+                <button
+                  onClick={startRecording}
+                  disabled={isRecording}
+                  className="px-3 py-2 rounded bg-black text-black disabled:opacity-50 text-sm"
+                >
+                  Start
+                </button>
+                <button
+                  onClick={stopRecording}
+                  disabled={!isRecording}
+                  className="px-3 py-2 rounded bg-gray-700 text-black disabled:opacity-50 text-sm"
+                >
+                  Stop
+                </button>
+              </div>
+              <p className="mt-1 text-xs italic text-white/80">
+                {isRecording ? `🎥 ${recordingTime}s` : recordingStopped ? (loading ? '⏳ Processing…' : 'Done') : ''}
+              </p>
+              {serverError && <p className="text-xs text-red-300 mt-1">{serverError}</p>}
+            </div>
+
+            {/* Live feedback */}
+            <div className="mt-2 bg-[#01333a] rounded-xl p-3 text-white">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs">🟦 Live Emotion (smoothed {windowSec}s)</span>
+                <span className="text-xs opacity-80">{liveTop || '—'}</span>
+              </div>
+              {Object.keys(liveProbs).length === 0 ? (
+                <p className="text-xs opacity-70">No face yet…</p>
+              ) : (
+                <ul className="space-y-2">
+                  {EMOTIONS.map((lab) => {
+                    const val = Math.round(liveProbs[lab] ?? 0);
+                    return (
+                      <li key={lab} className="flex items-center gap-3">
+                        <span className="w-16 shrink-0 text-[11px]">{lab}</span>
+                        <div className="flex-1 h-2 rounded bg-[#0b4952]">
+                          <div
+                            className="h-2 rounded transition-[width] duration-200"
+                            style={{ width: `${Math.min(100, val)}%`, background: '#00d1d1' }}
+                          />
+                        </div>
+                        <span className="w-10 shrink-0 text-[11px] text-right">{val}%</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT PANEL */}
+          <div className="bg-[#012e33] rounded-2xl shadow-lg p-4 text-white flex flex-col h-full min-h-0 overflow-y-auto">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-bold">📊 Analysis Report</h2>
+              {annotatedUrl && (
+                <a
+                  href={annotatedUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 bg-teal-700 rounded-md text-xs hover:bg-teal-600"
+                >
+                  ▶ Annotated video
+                </a>
+              )}
+            </div>
+
+            <div className="text-xs flex flex-wrap gap-3 mt-2 mb-2">
+              <span><strong>Status:</strong> {faceDetected ? '✅ Face' : '❌ No face'}</span>
+              <span><strong>Visible:</strong> {visibleSeconds}s</span>
+              <span><strong>Away:</strong> {awaySeconds}s</span>
+              <span><strong>Range:</strong> {startTime}s–{endTime}s</span>
+              <span><strong>Target:</strong> {targetEmotion}</span>
+              {summaryTop3?.length > 0 && (
+                <span><strong>Top 3:</strong> {summaryTop3.map(([e, p]) => `${e} ${p}%`).join(', ')}</span>
+              )}
+            </div>
+
+            {/* NEW: Expected vs Detected comparison */}
+            <div className="bg-black/25 rounded-lg p-3 mb-3">
+              <h3 className="font-semibold mb-2 text-sm">Expected vs Detected (now)</h3>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="bg-[#0b3640] rounded-md p-2">
+                  <div className="opacity-80">Expected from text</div>
+                  <div className="text-emerald-300 font-semibold">{expectedTextEmotion.label}</div>
+                  <div className="opacity-70">Conf: {Math.round(expectedTextEmotion.confidence*100)}%</div>
+                </div>
+                <div className="bg-[#0b3640] rounded-md p-2">
+                  <div className="opacity-80">Detected (window avg)</div>
+                  <div className="text-sky-300 font-semibold">{detectedNow || '—'}</div>
+                  {detectedNowConf != null && <div className="opacity-70">Conf: {detectedNowConf}%</div>}
+                </div>
+              </div>
+              {mismatchNow && faceDetected && (
+                <div className="mt-2 text-[11px] text-yellow-300">
+                  Tip: {buildMismatchSuggestion(expectedTextEmotion.label, detectedNow)}
+                </div>
+              )}
+            </div>
+
+            {/* Chart */}
+            <div className="bg-black/25 rounded-lg p-3 h-[320px]">
+              <h3 className="font-semibold mb-2 text-sm">Facial Emotions (avg from recording)</h3>
+              <Bar
+                data={ferChart}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  barPercentage: 0.6,
+                  categoryPercentage: 0.7,
+                  scales: {
+                    x: { grid: { display: false }, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0, font: { size: 11 }, color: '#a9c2c8' } },
+                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { font: { size: 11 }, color: '#a9c2c8', padding: 30 } },
+                  },
+                  plugins: { legend: { labels: { boxWidth: 20, font: { size: 10 }, color: '#cfe6ea' } }, tooltip: { enabled: true } },
+                  layout: { padding: { left: 10, right: 10, bottom: 0, top: 0 } },
+                }}
+              />
+            </div>
+
+            {/* Engagement (overall) */}
+            <div className="bg-[#0e2a30] rounded-lg flex flex-col items-center justify-center mt-3 h-[160px]">
+              <h3 className="mb-1 text-sm">🚗 Engagement</h3>
+              <svg viewBox="0 0 200 100" className="w-44">
+                <path d="M10 100 A90 90 0 0 1 190 100" fill="none" stroke="#f44336" strokeWidth="20" />
+                <path d="M55 100 A45 45 0 0 1 145 100" fill="none" stroke="#ff9800" strokeWidth="20" />
+                <line x1="100" y1="100" x2={needleX} y2={needleY} stroke="#ffc107" strokeWidth="6" strokeLinecap="round" />
+                <circle cx="100" cy="100" r="5" fill="#ffc107" />
+              </svg>
+              <p className="text-yellow-300 font-bold text-sm">{engagementPercentage}%</p>
+              {(coachEntropy != null || coachSwitches != null) && (
+                <p className="text-[10px] text-white/70 mt-1">
+                  {coachEntropy != null && <>Variety (entropy): <b>{coachEntropy}</b>&nbsp;&nbsp;</>}
+                  {coachSwitches != null && <>Switches: <b>{coachSwitches}</b>/min</>}
+                </p>
+              )}
+            </div>
+
+            {/* Alignment vs target (client fallback) */}
+            <div className="bg-[#0b3640] rounded-lg p-3 mt-3">
+              <h3 className="text-sm font-semibold mb-1">🎯 Alignment to target</h3>
+              <p className="text-xs text-white/85">
+                Target <b>{targetEmotion}</b>{intentText ? <> for “{intentText}”</> : null}. Estimated alignment:
+                {' '}<b>{clientAlignment}%</b> (backend score overrides if provided).
+              </p>
+            </div>
+
+            {/* Coaching summary */}
+            {coachSummary && (
+              <div className="bg-[#0b3640] rounded-lg p-3 mt-3">
+                <h3 className="text-sm font-semibold mb-1">🧭 Coaching</h3>
+                <p className="text-xs text-white/85">{coachSummary}</p>
+              </div>
+            )}
+
+            {/* Strengths & Areas */}
+            {(coachStrengths.length > 0 || coachAreas.length > 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                {coachStrengths.length > 0 && (
+                  <div className="bg-[#0b3640] rounded-lg p-3">
+                    <h4 className="text-sm font-semibold mb-1">✅ Strengths</h4>
+                    <ul className="list-disc pl-5 text-xs space-y-1">
+                      {coachStrengths.map((s, i) => <li key={`str-${i}`}>{s}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {coachAreas.length > 0 && (
+                  <div className="bg-[#0b3640] rounded-lg p-3">
+                    <h4 className="text-sm font-semibold mb-1">⚠️ Areas to improve</h4>
+                    <ul className="list-disc pl-5 text-xs space-y-1">
+                      {coachAreas.map((s, i) => <li key={`area-${i}`}>{s}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Moments to review (includes live text–face mismatches) */}
+            {coachMoments.length > 0 && (
+              <div className="bg-[#0b3640] rounded-lg p-3 mt-3">
+                <h4 className="text-sm font-semibold mb-2">🎯 Moments to review</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="text-white/70">
+                      <tr>
+                        <th className="text-left pb-1">Type</th>
+                        <th className="text-left pb-1">Time / Range</th>
+                        <th className="text-left pb-1">Label</th>
+                        <th className="text-left pb-1">Conf.</th>
+                        <th className="text-left pb-1">Suggestion</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {coachMoments.map((m, i) => (
+                        <tr key={`mom-${i}`} className="border-t border-white/10">
+                          <td className="py-1">{m.type === 'text_face_mismatch' ? 'Text–Face mismatch' : (m.type === 'neutral_span' ? 'Neutral span' : 'Negative spike')}</td>
+                          <td className="py-1">
+                            {m.type === 'text_face_mismatch'
+                              ? `${m.time?.toFixed?.(2)}s`
+                              : (m.type === 'neutral_span'
+                                  ? `${m.start?.toFixed?.(2)}s – ${m.end?.toFixed?.(2)}s`
+                                  : `${m.time?.toFixed?.(2)}s`)}
+                          </td>
+                          <td className="py-1">
+                            {m.type === 'text_face_mismatch'
+                              ? <span className="text-yellow-300">{`${m.label}: Text ${m.expected} vs Face ${m.detected}`}</span>
+                              : (m.label || '—')}
+                          </td>
+                          <td className="py-1">{m.prob != null ? `${Math.round(m.prob * 100)}%` : '—'}</td>
+                          <td className="py-1">{m.suggestion || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {loading && <p className="text-center text-xs text-white/70 mt-2">Processing…</p>}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 
-
-The software solution approach defines the overall architecture, development methodology, and implementation strategy for the Emotionally-Aware Presentation Analyzer. This component of the SpeaKraft platform is designed to assess the visibility of a presenter’s face, classify emotions using convolutional neural networks, and align these emotions with the spoken content of a presentation. The approach emphasizes scalability, functionality, user experience, and maintainability to ensure that the system is both technically robust and pedagogically valuable for Sri Lankan undergraduates.
-
-The first step involves systematic data collection to understand the unique challenges that students face in emotional delivery during presentations. Insights will be gathered through classroom observations, structured questionnaires, and focus group discussions with both students and academic supervisors. This process will provide an understanding of the recurring difficulties in maintaining visibility, expressing appropriate emotions, and aligning emotional delivery with the content being presented. The qualitative and quantitative data collected will guide the design of the system’s requirements and ensure that the final solution is aligned with the practical realities of presentation training in Sri Lankan universities.
-
-The next stage focuses on facial detection and visibility monitoring. Instead of relying on general-purpose APIs, the system integrates a dedicated face recognition pipeline built with OpenCV and deep learning models to ensure consistent tracking of the presenter’s face throughout the presentation. By continuously monitoring framing, lighting, and visibility, the module ensures that the audience has uninterrupted access to facial cues, which are critical for interpreting emotional intent. This stage also supports the reliability of the emotion recognition process by guaranteeing that facial inputs are of sufficient quality.
-
-The core of the solution lies in the emotion recognition model. A convolutional neural network will be trained to classify facial expressions such as happiness, sadness, anger, surprise, and neutrality. To overcome the challenges of limited local data, transfer learning will be applied, allowing the model to adapt pre-trained architectures such as VGG16 or ResNet to the Sri Lankan undergraduate context. Image preprocessing and augmentation techniques will be incorporated to improve accuracy under varying lighting and environmental conditions. The training process will focus on reducing cultural bias by including locally collected datasets that reflect the diversity of emotional expressions among Sri Lankan students.
-
-To evaluate emotional authenticity, the Analyzer integrates natural language processing for content analysis. Speech-to-text conversion will generate transcripts of presentations, which will then be segmented and analyzed to determine the expected tone of each section. The recognized emotions from the CNN model will be compared with the semantic interpretation of the text to assess congruence. For example, a motivational section may be expected to carry enthusiasm, while a discussion of social problems may require a more serious tone. This cross-modal analysis will form the foundation of the system’s feedback mechanism.
-
-The system will also include a reporting and analytics framework. After each presentation, students will receive a comprehensive analytical report that outlines face visibility percentages, an emotion timeline, congruence scores, and actionable recommendations for improvement. The user interface will be designed with React and Vite to ensure that the reports are clear, engaging, and easy to interpret. Export options will also be provided, allowing reports to be downloaded in PDF format for academic evaluation or self-reflection.
-
-The implementation strategy will follow an iterative development cycle, beginning with prototyping and limited pilot testing. Feedback from these stages will be used to refine the CNN models, NLP modules, and user interface. Larger-scale deployment will follow, with integration into university training environments and communication skills programs. By adopting this phased and feedback-driven approach, the solution will be continuously improved to meet the needs of its users.
-
-Overall, the software solution approach ensures that the Emotionally-Aware Presentation Analyzer is not only a technically advanced tool but also one that addresses the cultural and educational requirements of Sri Lankan undergraduates. Through data-driven design, deep learning techniques, and localized adaptation, the system will provide a meaningful and scalable solution for developing authentic and effective presentation skills.
-
-
-
-•	Real-Time Feedback System:
-The Analyzer will incorporate a real-time feedback mechanism that provides immediate visual cues to presenters during their delivery. This system will notify users if their face is not fully visible within the camera frame, if lighting conditions hinder recognition, or if their emotional expressions appear inconsistent with the expected tone of the presentation. By receiving these instant alerts, students can adjust their posture, visibility, or delivery style while still presenting, ensuring stronger audience engagement and improved overall effectiveness.
-
-•	Model Evaluation:
-To ensure reliability and accuracy, the performance of the trained convolutional neural network models will be systematically evaluated. Metrics such as precision, recall, F1 score, and overall accuracy will be used to measure the system’s ability to correctly classify emotions across different conditions. The evaluation process will also test the robustness of the model with locally adapted datasets to minimize cultural bias in recognizing Sri Lankan students’ facial expressions. By validating the model against both controlled datasets and real-world presentation scenarios, the system ensures dependable performance that supports authentic feedback and long-term learning objectives.
-
-•	User Interface and Experience:
-The user interface will be designed to provide an engaging and intuitive experience for undergraduates using the Analyzer. The dashboard will present real-time alerts, visibility checks, and emotional alignment indicators in a clear and non-intrusive manner. At the conclusion of each presentation, students will be able to access detailed reports that visualize their emotional timeline, visibility percentages, and congruence scores through charts and heatmaps. The design will prioritize clarity, accessibility, and ease of interpretation, ensuring that users can readily understand their strengths and areas for improvement. By integrating interactive elements with modern UI principles, the interface will encourage active engagement and reflection, helping students enhance both their emotional awareness and presentation delivery skills.
 
 
