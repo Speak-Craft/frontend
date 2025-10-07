@@ -224,280 +224,18 @@ const PaceManagement = () => {
   const [recordTime, setRecordTime] = useState(0);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [showReportPreview, setShowReportPreview] = useState(false);
-  const [realtimeVoiceMetrics, setRealtimeVoiceMetrics] = useState({
-    jitter_local: 0,
-    shimmer_local: 0,
-    hnr_mean: 0,
-    f1_mean: 0,
-    rhythm_outliers: 0,
-    rhythm_consistency: 0,
-    rhythm_regularity: 0,
-    speech_continuity: 0,
-    speaking_efficiency: 0
-  });
-  
-  const [isAnalyzingVoice, setIsAnalyzingVoice] = useState(false);
 
   useEffect(() => {
     let timer;
-    let voiceAnalysisTimer;
 
     if (isRecording && !isPaused) {
       timer = setInterval(() => {
         setRecordTime((prev) => prev + 1);
       }, 1000);
-
-      // Real-time voice analysis every 3 seconds
-      voiceAnalysisTimer = setInterval(() => {
-        analyzeRealtimeVoice();
-      }, 3000);
     }
 
-    return () => {
-      clearInterval(timer);
-      clearInterval(voiceAnalysisTimer);
-    };
+    return () => clearInterval(timer);
   }, [isRecording, isPaused]);
-
-  const analyzeRealtimeVoice = async () => {
-    if (!isRecording || isPaused || !mediaStreamRef.current || isAnalyzingVoice) return;
-
-    setIsAnalyzingVoice(true);
-    try {
-      // Use the existing audio context from startAnalyzing if available
-      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-        setIsAnalyzingVoice(false);
-        return; // Skip analysis if no valid audio context
-      }
-
-      // Create a temporary audio context for recording 3 seconds of audio
-      const tempAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const source = tempAudioContext.createMediaStreamSource(mediaStreamRef.current);
-      const processor = tempAudioContext.createScriptProcessor(4096, 1, 1);
-      
-      const pcmBuffer = [];
-      let isProcessing = false;
-      
-      processor.onaudioprocess = (event) => {
-        if (isProcessing || !isRecording || isPaused) return;
-        isProcessing = true;
-        
-        const input = event.inputBuffer.getChannelData(0);
-        pcmBuffer.push(...input);
-        
-        isProcessing = false;
-      };
-      
-      source.connect(processor);
-      processor.connect(tempAudioContext.destination);
-      
-      // Record for 2 seconds to reduce blob size
-      setTimeout(async () => {
-        if (!isRecording || isPaused) {
-          // Clean up and reset to 0 if not recording
-          try {
-            processor.disconnect();
-            source.disconnect();
-            tempAudioContext.close();
-          } catch (e) {
-            console.warn("Error cleaning up voice analysis:", e);
-          }
-          setRealtimeVoiceMetrics({
-            jitter_local: 0,
-            shimmer_local: 0,
-            hnr_mean: 0,
-            f1_mean: 0,
-            rhythm_outliers: 0,
-            rhythm_consistency: 0,
-            rhythm_regularity: 0,
-            speech_continuity: 0,
-            speaking_efficiency: 0
-          });
-          return;
-        }
-        
-        // Convert PCM data to WAV and send for analysis
-        if (pcmBuffer.length > 0) {
-          const wavBlob = createWavBlob(new Float32Array(pcmBuffer), tempAudioContext.sampleRate);
-          await sendVoiceQualityAnalysis(wavBlob);
-        }
-        
-        // Clean up
-        try {
-          processor.disconnect();
-          source.disconnect();
-          tempAudioContext.close();
-        } catch (e) {
-          console.warn("Error cleaning up voice analysis:", e);
-        }
-      }, 5000); // 5 seconds
-      
-    } catch (error) {
-      console.warn("Real-time voice analysis error:", error);
-      // Reset to 0 on error
-      setRealtimeVoiceMetrics({
-        jitter_local: 0,
-        shimmer_local: 0,
-        hnr_mean: 0,
-        f1_mean: 0,
-        rhythm_outliers: 0,
-        rhythm_consistency: 0,
-        rhythm_regularity: 0,
-        speech_continuity: 0,
-        speaking_efficiency: 0
-      });
-    } finally {
-      setIsAnalyzingVoice(false);
-    }
-  };
-
-  // Helper function to create WAV blob (from Loudness.jsx)
-  const createWavBlob = (float32Array, sampleRate) => {
-    const to16 = (input) => {
-      const buffer = new ArrayBuffer(input.length * 2);
-      const view = new DataView(buffer);
-      let offset = 0;
-      for (let i = 0; i < input.length; i++, offset += 2) {
-        let s = Math.max(-1, Math.min(1, input[i]));
-        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-      }
-      return buffer;
-    };
-    
-    const writeHdr = (view, sampleRate, numSamples) => {
-      const set32 = (o, v) => view.setUint32(o, v, true);
-      const set16 = (o, v) => view.setUint16(o, v, true);
-      const numChannels = 1, bps = 2;
-      set32(0, 0x46464952); // RIFF
-      set32(4, 36 + numSamples * bps);
-      set32(8, 0x45564157); // WAVE
-      set32(12, 0x20746d66); // fmt 
-      set32(16, 16);
-      set16(20, 1);
-      set16(22, numChannels);
-      set32(24, sampleRate);
-      set32(28, sampleRate * numChannels * bps);
-      set16(32, numChannels * bps);
-      set16(34, 8 * bps);
-      set32(36, 0x61746164); // data
-      set32(40, numSamples * bps);
-    };
-    
-    const pcm = to16(float32Array);
-    const wav = new ArrayBuffer(44 + pcm.byteLength);
-    const view = new DataView(wav);
-    writeHdr(view, sampleRate, float32Array.length);
-    new Uint8Array(wav, 44).set(new Uint8Array(pcm));
-    return new Blob([wav], { type: 'audio/wav' });
-  };
-
-  // Helper function to convert ArrayBuffer to base64 in chunks
-  const arrayBufferToBase64 = (buffer) => {
-    let binary = '';
-    const bytes = new Uint8Array(buffer);
-    const chunkSize = 0x8000; // 32KB chunks
-    
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.subarray(i, i + chunkSize);
-      binary += String.fromCharCode.apply(null, chunk);
-    }
-    
-    return btoa(binary);
-  };
-
-  // Send voice quality analysis to backend
-  const sendVoiceQualityAnalysis = async (wavBlob) => {
-    try {
-      console.log('Sending voice quality analysis, blob size:', wavBlob.size);
-      
-      // Follow the same pattern as Loudness.jsx - send as file, not base64
-      const formData = new FormData();
-      formData.append('file', wavBlob, 'recording.wav');
-      
-      const response = await fetch('http://localhost:8000/pause/pause-analysis/', {
-        method: 'POST',
-        body: formData
-      });
-      
-      const result = await response.json();
-      console.log('Voice quality analysis response:', result);
-      
-      if (result.advancedMetrics) {
-        // Extract voice quality metrics from advancedMetrics section
-        const metrics = result.advancedMetrics;
-        console.log('Voice quality features:', metrics);
-        
-        // Calculate more realistic display values based on voice quality and rhythm
-        const jitter = metrics.jitter_local || 0;
-        const shimmer = metrics.shimmer_local || 0;
-        const hnr = metrics.hnr_mean || 0;
-        const rhythmOutliers = metrics.rhythm_outliers || 0;
-        const rhythmRegularity = metrics.rhythm_regularity || 0;
-        const rhythmConsistency = metrics.rhythm_consistency || 0;
-        
-        // Use the actual backend values directly for speech_continuity and speaking_efficiency
-        const actualSpeechContinuity = metrics.speech_continuity || 0;
-        const actualSpeakingEfficiency = metrics.speaking_efficiency || 0;
-        
-        // If both are very high (>0.95), it might mean no speech detected, so check voice quality
-        let speechFlow = actualSpeechContinuity;
-        let speakingEfficiency = actualSpeakingEfficiency;
-        
-        // If no meaningful voice quality detected (all zeros), set to 0
-        if (jitter === 0 && shimmer === 0 && hnr === 0) {
-          speechFlow = 0;
-          speakingEfficiency = 0;
-        } else if (actualSpeechContinuity >= 0.95 && actualSpeakingEfficiency >= 0.95) {
-          // Very high values might indicate no pauses, but we should still consider voice quality
-          const voiceQualityScore = Math.max(0, 1.0 - (jitter * 20) - (shimmer * 2) + (hnr / 25));
-          const rhythmScore = Math.max(0, rhythmRegularity - (rhythmOutliers * 0.1));
-          speechFlow = Math.min(1.0, Math.max(0.0, (voiceQualityScore + rhythmScore + actualSpeechContinuity) / 3));
-          speakingEfficiency = Math.min(1.0, Math.max(0.0, (speechFlow + rhythmConsistency) / 2));
-        }
-        
-        setRealtimeVoiceMetrics({
-          jitter_local: jitter,
-          shimmer_local: shimmer,
-          hnr_mean: hnr,
-          f1_mean: metrics.f1_mean || 0,
-          rhythm_outliers: rhythmOutliers,
-          rhythm_consistency: rhythmConsistency,
-          rhythm_regularity: rhythmRegularity,
-          speech_continuity: speechFlow,
-          speaking_efficiency: speakingEfficiency
-        });
-        
-      } else {
-        console.error('Voice quality analysis failed:', result.error);
-        // Set zero values on error
-        setRealtimeVoiceMetrics({
-          jitter_local: 0,
-          shimmer_local: 0,
-          hnr_mean: 0,
-          f1_mean: 0,
-          rhythm_outliers: 0,
-          rhythm_consistency: 0,
-          rhythm_regularity: 0,
-          speech_continuity: 0,
-          speaking_efficiency: 0
-        });
-      }
-    } catch (error) {
-      console.error('Error sending voice quality analysis:', error);
-      // Set zero values on error
-      setRealtimeVoiceMetrics({
-        jitter_local: 0,
-        shimmer_local: 0,
-        hnr_mean: 0,
-        f1_mean: 0,
-        rhythm_outliers: 0,
-        rhythm_consistency: 0,
-        rhythm_regularity: 0,
-        speech_continuity: 0,
-        speaking_efficiency: 0
-      });
-    }
-  };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -511,14 +249,7 @@ const PaceManagement = () => {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       }
       if (audioContextRef.current) {
-        try {
-          if (audioContextRef.current.state !== 'closed') {
-            audioContextRef.current.close();
-          }
-        } catch (closeError) {
-          // Ignore close errors - AudioContext might already be closed
-          console.debug("AudioContext cleanup error:", closeError.message);
-        }
+        audioContextRef.current.close();
       }
     };
   }, []);
@@ -526,30 +257,6 @@ const PaceManagement = () => {
   useEffect(() => {
     if (isRecording && !isPaused) {
       startAnalyzing();
-      
-      // Start voice quality analysis every 5.5 seconds
-      const voiceQualityInterval = setInterval(() => {
-        if (isRecording && !isPaused) {
-          analyzeRealtimeVoice();
-        }
-      }, 5500);
-      
-      return () => {
-        clearInterval(voiceQualityInterval);
-      };
-    } else {
-      // Reset voice metrics when not recording or paused
-      setRealtimeVoiceMetrics({
-        jitter_local: 0,
-        shimmer_local: 0,
-        hnr_mean: 0,
-        f1_mean: 0,
-        rhythm_outliers: 0,
-        rhythm_consistency: 0,
-        rhythm_regularity: 0,
-        speech_continuity: 0,
-        speaking_efficiency: 0
-      });
     }
   }, [isRecording, isPaused]);
 
@@ -649,19 +356,6 @@ const PaceManagement = () => {
     if (mediaRecorderRef.current && isRecording && !isPaused) {
       setIsPaused(true);
       mediaRecorderRef.current.pause();
-      
-      // Reset real-time metrics when pausing
-      setRealtimeVoiceMetrics({
-        jitter_local: 0,
-        shimmer_local: 0,
-        hnr_mean: 0,
-        f1_mean: 0,
-        rhythm_outliers: 0,
-        rhythm_consistency: 0,
-        rhythm_regularity: 0,
-        speech_continuity: 0,
-        speaking_efficiency: 0
-      });
     }
   };
 
@@ -676,19 +370,6 @@ const PaceManagement = () => {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       }
       audioChunksRef.current = [];
-      
-      // Reset real-time metrics to 0 when stopping
-      setRealtimeVoiceMetrics({
-        jitter_local: 0,
-        shimmer_local: 0,
-        hnr_mean: 0,
-        f1_mean: 0,
-        rhythm_outliers: 0,
-        rhythm_consistency: 0,
-        rhythm_regularity: 0,
-        speech_continuity: 0,
-        speaking_efficiency: 0
-      });
     }
   };
 
@@ -704,7 +385,7 @@ const PaceManagement = () => {
           method: "POST",
           body: formData,
         }).catch(err => {
-          // console.warn("Rate analysis not available:", err);
+          console.warn("Rate analysis not available:", err);
           return { json: () => Promise.resolve({}) };
         }),
         
@@ -751,9 +432,9 @@ const PaceManagement = () => {
             backendSuggestions = suggestionsData.structuredSuggestions || {};
             pauseRecommendations = suggestionsData.pauseRecommendations || [];
             priorityImprovements = suggestionsData.priorityImprovements || [];
-            // console.log("Backend suggestions generated successfully");
+            console.log("Backend suggestions generated successfully");
           } else {
-            // console.warn("Failed to get backend suggestions, using empty fallback");
+            console.warn("Failed to get backend suggestions, using empty fallback");
             // Fallback to empty suggestions
             backendSuggestions = {};
             pauseRecommendations = [];
@@ -767,32 +448,18 @@ const PaceManagement = () => {
           priorityImprovements = [];
         }
 
-        // Validate backend model prediction against WPM ranges
+        // Determine display label: ALWAYS use backend model prediction first, then fallback
+        // The backend model is the authoritative source for predictions
         const backendLabel = rateData.modelPrediction || rateData.prediction;
         const frontendCalculatedLabel = getWpmLabel(rateData.wpm || 0);
         
-        // Validate backend prediction makes sense with actual WPM
-        const isValidBackendPrediction = (label, wpm) => {
-          if (!label || !wpm) return false;
-          
-          // Check if prediction matches WPM range
-          if (label === "Slow" && wpm >= 100) return false;
-          if (label === "Ideal" && (wpm < 100 || wpm > 150)) return false;
-          if (label === "Fast" && wpm <= 150) return false;
-          
-          return true;
-        };
+        // Use backend prediction if available, otherwise fallback to frontend calculation
+        const finalLabel = backendLabel || frontendCalculatedLabel;
         
-        // Use backend prediction only if it's valid, otherwise use frontend calculation
-        const finalLabel = (backendLabel && isValidBackendPrediction(backendLabel, rateData.wpm)) 
-          ? backendLabel 
-          : frontendCalculatedLabel;
-        
-
-        // Log warning if backend prediction was invalid
-        if (backendLabel && !isValidBackendPrediction(backendLabel, rateData.wpm)) {
-          // console.warn(`⚠️ Backend model prediction "${backendLabel}" doesn't match WPM ${rateData.wpm}, using frontend calculation instead`);
-        }
+        console.log(`Display label for ${rateData.wpm} WPM:`);
+        console.log(`  Backend model prediction: ${backendLabel || 'Not available'}`);
+        console.log(`  Frontend calculated: ${frontendCalculatedLabel}`);
+        console.log(`  Final label used: ${finalLabel}`);
         
         // Get feedback from backend using the final determined label (backend prediction preferred)
         let backendRateFeedback = null;
@@ -805,7 +472,7 @@ const PaceManagement = () => {
           wordCount: rateData.wordCount || 0
         };
         
-        // console.log("Sending request to backend:", requestData);
+        console.log("Sending request to backend:", requestData);
         
         try {
           // Try the direct endpoint first
@@ -819,7 +486,7 @@ const PaceManagement = () => {
           
           // If that fails, try the redirect endpoint
           if (!feedbackResponse.ok) {
-            // console.log("Direct endpoint failed, trying redirect endpoint...");
+            console.log("Direct endpoint failed, trying redirect endpoint...");
             feedbackResponse = await fetch("http://localhost:8000/generate-rate-feedback/", {
               method: "POST",
               headers: {
@@ -832,45 +499,32 @@ const PaceManagement = () => {
           if (feedbackResponse.ok) {
             const feedbackData = await feedbackResponse.json();
             backendRateFeedback = feedbackData.enhancedFeedback;
-            // console.log("Backend feedback generated successfully:", feedbackData);
+            console.log("Backend feedback generated successfully:", feedbackData);
           } else {
-            // console.warn("Failed to get backend feedback, using frontend fallback. Status:", feedbackResponse.status);
+            console.warn("Failed to get backend feedback, using frontend fallback. Status:", feedbackResponse.status);
           }
         } catch (error) {
           console.warn("Error getting backend feedback:", error);
         }
         
-        // Calculate frontend consistency score if backend is invalid
-        let finalConsistencyScore = rateData.consistencyScore || 0;
-        if (finalConsistencyScore <= 0 && rateData.pacingCurve && rateData.pacingCurve.length >= 3) {
-          // Calculate consistency from pacing curve
-          const wpmValues = rateData.pacingCurve.map(point => point.wpm || 0);
-          const wpmStd = Math.sqrt(wpmValues.reduce((acc, wpm, i, arr) => {
-            const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
-            return acc + Math.pow(wpm - mean, 2);
-          }, 0) / wpmValues.length);
-          finalConsistencyScore = Math.max(0, 100 - wpmStd);
-          // console.log(`Calculated frontend consistency score: ${finalConsistencyScore}% (from WPM std: ${wpmStd})`);
-        }
-        
         // Use backend feedback if available, otherwise fallback to frontend
         let frontendRateFeedback;
         if (backendRateFeedback) {
-          // console.log("Using backend feedback");
+          console.log("Using backend feedback");
           frontendRateFeedback = backendRateFeedback;
         } else {
-          // console.log("Using frontend fallback feedback");
+          console.log("Using frontend fallback feedback");
           frontendRateFeedback = generateFrontendFeedback(
             rateData.wpm || 0,
             finalLabel, // Use the final determined label
-            finalConsistencyScore, // Use calculated consistency score
+            rateData.consistencyScore || 0,
             rateData.pacingCurve || [],
             rateData.duration || 0,
             rateData.wordCount || 0
           );
         }
         
-        // console.log("Final feedback being used:", frontendRateFeedback);
+        console.log("Final feedback being used:", frontendRateFeedback);
 
         // Combine rate and pause analysis results with frontend calculations
         setResults({
@@ -879,12 +533,11 @@ const PaceManagement = () => {
           duration: rateData.duration || 0,
           wpm: rateData.wpm || 0,
           prediction: finalLabel, // Use final determined label (backend preferred)
-          consistencyScore: finalConsistencyScore, // Use corrected consistency score
+          consistencyScore: rateData.consistencyScore || 0,
           pacingCurve: rateData.pacingCurve || [],
           voiceQuality: rateData.voiceQuality || {},
           rateEnhancedFeedback: frontendRateFeedback, // Use frontend-calculated feedback
           modelPrediction: backendLabel || "", // Store backend prediction for reference
-          backendPredictionValid: isValidBackendPrediction(backendLabel, rateData.wpm), // Track if backend prediction was valid
           
           // Frontend-calculated pause analysis results
           pausePrediction: pauseData.pauseAnalysis?.prediction || "Analyzing...", // Pause model prediction
@@ -934,189 +587,9 @@ const PaceManagement = () => {
   // Frontend WPM label calculation (using exact same logic as model training)
   // Backend model was trained with: <100=Slow, 100-150=Ideal, >150=Fast
   const getWpmLabel = (wpm) => {
-    // Handle edge cases and invalid values
-    if (!wpm || wpm <= 0 || wpm > 500) {
-      // console.warn(`⚠️ Invalid WPM value: ${wpm}, defaulting to "Slow"`);
-      return "Slow";
-    }
-    
     if (wpm < 100) return "Slow";
     if (wpm <= 150) return "Ideal";
     return "Fast";
-  };
-
-  // Calculate label probability based on feature values and thresholds from auto_label function
-  const calculateLabelProbability = (label, metrics) => {
-    if (!metrics) return 0;
-
-    // Extract feature values with defaults
-    const pauseRatio = metrics.pause_ratio || 0;
-    const excessiveCount = metrics.excessive_count || 0;
-    const contextualPauseScore = metrics.contextual_pause_score || 0;
-    const wpmCv = metrics.wpm_cv || 0;
-    const wpmDeltaStd = metrics.wpm_delta_std || 0;
-    const segDurationStd = metrics.seg_duration_std || 0;
-    const wpmJerk = metrics.wpm_jerk || 0;
-    const rhythmOutliers = metrics.rhythm_outliers || 0;
-    const pauseRhythmConsistency = metrics.pause_rhythm_consistency || 1.0;
-    const speechContinuity = metrics.speech_continuity || 1.0;
-    const goldenRatioPauses = metrics.golden_ratio_pauses || 0;
-    const cognitivePauseScore = metrics.cognitive_pause_score || 0;
-    const confidenceScore = metrics.confidence_score || 1.0;
-    const optimalCognitivePauseRatio = metrics.optimal_cognitive_pause_ratio || 1.0;
-    const speakingEfficiency = metrics.speaking_efficiency || 1.0;
-    const pauseEfficiency = metrics.pause_efficiency || 0;
-    const pauseSpacingConsistency = metrics.pause_spacing_consistency || 1.0;
-    const toastmastersScore = metrics.toastmasters_score || 0;
-    const optimalTransitionRatio = metrics.optimal_transition_ratio || 0;
-
-    // Calculate probability based on how close the current values are to the thresholds
-    switch (label) {
-      case "poor_pause_control":
-        // pause_ratio > 0.15 OR excessive_count > 2 OR contextual_pause_score < -0.5
-        const poorPauseScore = Math.max(
-          pauseRatio > 0.15 ? 1.0 : pauseRatio / 0.15,
-          excessiveCount > 2 ? 1.0 : excessiveCount / 2,
-          contextualPauseScore < -0.5 ? 1.0 : Math.max(0, (0.5 + contextualPauseScore) / 0.5)
-        );
-        return Math.min(poorPauseScore, 1.0);
-
-      case "needs_pause_improvement":
-        // pause_ratio > 0.12 OR excessive_count > 1 OR contextual_pause_score < 0.0
-        const needsImprovementScore = Math.max(
-          pauseRatio > 0.12 ? 1.0 : pauseRatio / 0.12,
-          excessiveCount > 1 ? 1.0 : excessiveCount / 1,
-          contextualPauseScore < 0.0 ? 1.0 : Math.max(0, (0.2 + contextualPauseScore) / 0.2)
-        );
-        return Math.min(needsImprovementScore, 1.0);
-
-      case "inconsistent_pace":
-        // wpm_cv > 0.4 OR wpm_delta_std > 8 OR seg_duration_std > 2.5 OR wpm_jerk > 10
-        const inconsistentPaceScore = Math.max(
-          wpmCv > 0.4 ? 1.0 : wpmCv / 0.4,
-          wpmDeltaStd > 8 ? 1.0 : wpmDeltaStd / 8,
-          segDurationStd > 2.5 ? 1.0 : segDurationStd / 2.5,
-          wpmJerk > 10 ? 1.0 : wpmJerk / 10
-        );
-        return Math.min(inconsistentPaceScore, 1.0);
-
-      case "moderate_pace_consistency":
-        // wpm_cv > 0.25 OR wpm_delta_std > 5 OR wpm_jerk > 5
-        const moderatePaceScore = Math.max(
-          wpmCv > 0.25 ? 1.0 : wpmCv / 0.25,
-          wpmDeltaStd > 5 ? 1.0 : wpmDeltaStd / 5,
-          wpmJerk > 5 ? 1.0 : wpmJerk / 5
-        );
-        return Math.min(moderatePaceScore, 1.0);
-
-      case "poor_rhythm":
-        // rhythm_outliers >= 6 OR pause_rhythm_consistency < 0.3 OR speech_continuity < 0.6 OR golden_ratio_pauses < 0.2
-        const poorRhythmScore = Math.max(
-          rhythmOutliers >= 6 ? 1.0 : rhythmOutliers / 6,
-          pauseRhythmConsistency < 0.3 ? 1.0 : Math.max(0, (0.3 - pauseRhythmConsistency) / 0.3),
-          speechContinuity < 0.6 ? 1.0 : Math.max(0, (0.6 - speechContinuity) / 0.6),
-          goldenRatioPauses < 0.2 ? 1.0 : Math.max(0, (0.2 - goldenRatioPauses) / 0.2)
-        );
-        return Math.min(poorRhythmScore, 1.0);
-
-      case "moderate_rhythm":
-        // rhythm_outliers >= 3 OR pause_rhythm_consistency < 0.5 OR speech_continuity < 0.8 OR golden_ratio_pauses < 0.4
-        const moderateRhythmScore = Math.max(
-          rhythmOutliers >= 3 ? 1.0 : rhythmOutliers / 3,
-          pauseRhythmConsistency < 0.5 ? 1.0 : Math.max(0, (0.5 - pauseRhythmConsistency) / 0.5),
-          speechContinuity < 0.8 ? 1.0 : Math.max(0, (0.8 - speechContinuity) / 0.8),
-          goldenRatioPauses < 0.4 ? 1.0 : Math.max(0, (0.4 - goldenRatioPauses) / 0.4)
-        );
-        return Math.min(moderateRhythmScore, 1.0);
-
-      case "cognitive_load_issues":
-        // cognitive_pause_score < 0.3 OR confidence_score < 0.6 OR optimal_cognitive_pause_ratio < 0.5
-        const cognitiveLoadScore = Math.max(
-          cognitivePauseScore < 0.3 ? 1.0 : Math.max(0, (0.3 - cognitivePauseScore) / 0.3),
-          confidenceScore < 0.6 ? 1.0 : Math.max(0, (0.6 - confidenceScore) / 0.6),
-          optimalCognitivePauseRatio < 0.5 ? 1.0 : Math.max(0, (0.5 - optimalCognitivePauseRatio) / 0.5)
-        );
-        return Math.min(cognitiveLoadScore, 1.0);
-
-      case "needs_overall_improvement":
-        // speaking_efficiency < 0.7 OR pause_efficiency > 3.0 OR pause_spacing_consistency < 0.5
-        const overallImprovementScore = Math.max(
-          speakingEfficiency < 0.7 ? 1.0 : Math.max(0, (0.7 - speakingEfficiency) / 0.7),
-          pauseEfficiency > 3.0 ? 1.0 : pauseEfficiency / 3.0,
-          pauseSpacingConsistency < 0.5 ? 1.0 : Math.max(0, (0.5 - pauseSpacingConsistency) / 0.5)
-        );
-        return Math.min(overallImprovementScore, 1.0);
-
-      case "toastmasters_excellent":
-        // toastmasters_score >= 0.8 AND pause_ratio >= 0.08 AND pause_ratio <= 0.12 AND optimal_transition_ratio >= 0.7
-        const toastmastersExcellenceScore = (
-          (toastmastersScore >= 0.8 ? 1.0 : toastmastersScore / 0.8) *
-          (pauseRatio >= 0.08 && pauseRatio <= 0.12 ? 1.0 : 0.5) *
-          (optimalTransitionRatio >= 0.7 ? 1.0 : optimalTransitionRatio / 0.7)
-        );
-        return Math.min(toastmastersExcellenceScore, 1.0);
-
-      case "good_pace_control":
-        // Default case - inverse of other problems (avoiding recursive calls)
-        const otherProblems = [
-          // poor_pause_control
-          Math.max(
-            pauseRatio > 0.15 ? 1.0 : pauseRatio / 0.15,
-            excessiveCount > 2 ? 1.0 : excessiveCount / 2,
-            contextualPauseScore < -0.5 ? 1.0 : Math.max(0, (0.5 + contextualPauseScore) / 0.5)
-          ),
-          // needs_pause_improvement
-          Math.max(
-            pauseRatio > 0.12 ? 1.0 : pauseRatio / 0.12,
-            excessiveCount > 1 ? 1.0 : excessiveCount / 1,
-            contextualPauseScore < 0.0 ? 1.0 : Math.max(0, (0.2 + contextualPauseScore) / 0.2)
-          ),
-          // inconsistent_pace
-          Math.max(
-            wpmCv > 0.4 ? 1.0 : wpmCv / 0.4,
-            wpmDeltaStd > 8 ? 1.0 : wpmDeltaStd / 8,
-            segDurationStd > 2.5 ? 1.0 : segDurationStd / 2.5,
-            wpmJerk > 10 ? 1.0 : wpmJerk / 10
-          ),
-          // moderate_pace_consistency
-          Math.max(
-            wpmCv > 0.25 ? 1.0 : wpmCv / 0.25,
-            wpmDeltaStd > 5 ? 1.0 : wpmDeltaStd / 5,
-            wpmJerk > 5 ? 1.0 : wpmJerk / 5
-          ),
-          // poor_rhythm
-          Math.max(
-            rhythmOutliers >= 6 ? 1.0 : rhythmOutliers / 6,
-            pauseRhythmConsistency < 0.3 ? 1.0 : Math.max(0, (0.3 - pauseRhythmConsistency) / 0.3),
-            speechContinuity < 0.6 ? 1.0 : Math.max(0, (0.6 - speechContinuity) / 0.6),
-            goldenRatioPauses < 0.2 ? 1.0 : Math.max(0, (0.2 - goldenRatioPauses) / 0.2)
-          ),
-          // moderate_rhythm
-          Math.max(
-            rhythmOutliers >= 3 ? 1.0 : rhythmOutliers / 3,
-            pauseRhythmConsistency < 0.5 ? 1.0 : Math.max(0, (0.5 - pauseRhythmConsistency) / 0.5),
-            speechContinuity < 0.8 ? 1.0 : Math.max(0, (0.8 - speechContinuity) / 0.8),
-            goldenRatioPauses < 0.4 ? 1.0 : Math.max(0, (0.4 - goldenRatioPauses) / 0.4)
-          ),
-          // cognitive_load_issues
-          Math.max(
-            cognitivePauseScore < 0.3 ? 1.0 : Math.max(0, (0.3 - cognitivePauseScore) / 0.3),
-            confidenceScore < 0.6 ? 1.0 : Math.max(0, (0.6 - confidenceScore) / 0.6),
-            optimalCognitivePauseRatio < 0.5 ? 1.0 : Math.max(0, (0.5 - optimalCognitivePauseRatio) / 0.5)
-          ),
-          // needs_overall_improvement
-          Math.max(
-            speakingEfficiency < 0.7 ? 1.0 : Math.max(0, (0.7 - speakingEfficiency) / 0.7),
-            pauseEfficiency > 3.0 ? 1.0 : pauseEfficiency / 3.0,
-            pauseSpacingConsistency < 0.5 ? 1.0 : Math.max(0, (0.5 - pauseSpacingConsistency) / 0.5)
-          )
-        ];
-        const maxProblem = Math.max(...otherProblems);
-        return Math.max(0, 1.0 - maxProblem);
-
-      default:
-        return 0;
-    }
   };
 
   // Frontend feedback generation based on calculated label
@@ -1313,7 +786,7 @@ const PaceManagement = () => {
       setTimeout(() => {
         setIsGeneratingReport(false);
         // You could add a toast notification here
-        // console.log("✅ Professional report generated successfully!");
+        console.log("✅ Professional report generated successfully!");
       }, 1000);
     } catch (error) {
       setIsGeneratingReport(false);
@@ -2176,19 +1649,6 @@ const PaceManagement = () => {
                 AI Insights
               </button>
 
-              {/* Voice Quality Tab */}
-              <button
-                className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
-                  activeTab === "voice"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
-                }`}
-                onClick={() => setActiveTab("voice")}
-              >
-                <FaUserCheck />
-                Voice Quality
-              </button>
-
             </div>
             {activeTab === "rate" && (
               <div
@@ -2238,8 +1698,6 @@ const PaceManagement = () => {
                     <p className="mt-1 text-white font-medium text-sm lg:text-base">
                       {results.prediction || getWpmLabel(results.wpm)} ({results.wpm.toFixed(1)} WPM)
                     </p>
-                 
-                  
                   </div>
 
                   {/* Duration */}
@@ -2454,14 +1912,14 @@ const PaceManagement = () => {
                       <div className="text-green-400 text-lg font-bold mb-1">
                         {results.pauseAnalysis.suggestions?.length || 0}
                       </div>
-                      <div className="text-white/70 text-sm"> Suggestions</div>
+                      <div className="text-white/70 text-sm">Frontend Suggestions</div>
                     </div>
                   </div>
                   
-                  {/* Top  Suggestions */}
+                  {/* Top Frontend-Calculated Suggestions */}
                   {results.pauseAnalysis.suggestions && results.pauseAnalysis.suggestions.length > 0 && (
                     <div className="mt-4">
-                      <h4 className="text-white font-semibold mb-2">💡  Recommendations:</h4>
+                      <h4 className="text-white font-semibold mb-2">💡 Frontend-Calculated Recommendations:</h4>
                       <div className="space-y-2">
                         {results.pauseAnalysis.suggestions.slice(0, 3).map((suggestion, index) => (
                           <div key={index} className="text-white/90 text-sm bg-white/10 rounded-lg p-2">
@@ -2760,81 +2218,6 @@ const PaceManagement = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Pause Model Labels Analysis */}
-                <div className="mb-6 p-4 bg-gradient-to-r from-[#00171f] to-[#003b46] rounded-lg border-2 border-[#00ccff]/40">
-                  <h3 className="text-[#00ccff] text-lg font-semibold mb-3">🏷️ Pause Model Labels Analysis</h3>
-                  
-                
-                  
-                  {/* Show only if we have prediction data */}
-                  {results.pauseAnalysis.prediction ? (
-                    <div className="space-y-4">
-                    
-                      {/* All Labels with their probabilities */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[
-                          { label: "poor_pause_control", description: "Poor Pause Control", color: "from-red-500 to-red-600" },
-                          { label: "needs_pause_improvement", description: "Needs Pause Improvement", color: "from-orange-500 to-orange-600" },
-                          { label: "inconsistent_pace", description: "Inconsistent Pace", color: "from-yellow-500 to-yellow-600" },
-                          { label: "moderate_pace_consistency", description: "Moderate Pace Consistency", color: "from-blue-500 to-blue-600" },
-                          { label: "poor_rhythm", description: "Poor Rhythm", color: "from-red-500 to-red-600" },
-                          { label: "moderate_rhythm", description: "Moderate Rhythm", color: "from-orange-500 to-orange-600" },
-                          { label: "cognitive_load_issues", description: "Cognitive Load Issues", color: "from-purple-500 to-purple-600" },
-                          { label: "needs_overall_improvement", description: "Needs Overall Improvement", color: "from-yellow-500 to-yellow-600" },
-                          { label: "toastmasters_excellent", description: "Toastmasters Excellent", color: "from-green-500 to-green-600" },
-                          { label: "good_pace_control", description: "Good Pace Control", color: "from-green-500 to-green-600" }
-                        ].map(({ label, description, color }) => {
-                          // Get probability for this label from the model results (backend probabilities are authoritative)
-                          let probability = results.pauseAnalysis.probabilities?.[label] || 0;
-                          const isPredicted = results.pauseAnalysis.prediction === label;
-                          
-                          // Only use frontend calculation if backend probabilities are not available
-                          if (!results.pauseAnalysis.probabilities || Object.keys(results.pauseAnalysis.probabilities).length === 0) {
-                            probability = calculateLabelProbability(label, results.advancedMetrics);
-                          }
-                          
-                          return (
-                            <div key={label} className={`bg-white/10 rounded-lg p-4 ${isPredicted ? 'ring-2 ring-[#00ccff] bg-[#00ccff]/10' : ''}`}>
-                              <div className="flex justify-between items-center mb-3">
-                                <span className="text-white text-sm font-medium">
-                                  {description}
-                                </span>
-                                {isPredicted && (
-                                  <span className="text-[#00ccff] text-xs font-bold px-2 py-1 bg-[#00ccff]/20 rounded-full">
-                                    PREDICTED
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {/* Progress Bar */}
-                              <div className="w-full bg-white/20 rounded-full h-4 relative overflow-hidden">
-                                <div
-                                  className={`h-4 rounded-full bg-gradient-to-r ${color} transition-all duration-1000 ease-out`}
-                                  style={{ width: `${Math.max(probability * 100, 2)}%` }}
-                                >
-                                  {/* Shine effect */}
-                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-                                </div>
-                                {/* Probability text inside the bar */}
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className="text-white text-xs font-bold drop-shadow-lg">
-                                    {(probability * 100).toFixed(1)}%
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="text-white/70 text-lg mb-2">No Analysis Available</div>
-                      <div className="text-white/50 text-sm">Record audio to see pause model predictions</div>
-                    </div>
-                  )}
-                </div>
 
                 {/* Toastmasters Compliance & Advanced Metrics */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -3227,362 +2610,6 @@ const PaceManagement = () => {
               </div>
             )}
 
-            {activeTab === "voice" && (
-              <div className="flex flex-col w-full h-full">
-                <h2 className="text-xl lg:text-2xl font-bold text-white mt-2 mb-4">
-                  Voice Quality & Rhythm Analysis
-                </h2>
-
-                {/* Real-time Voice Quality Detection */}
-                <div className="mb-6 p-4 bg-gradient-to-r from-[#00171f] to-[#003b46] rounded-lg border-2 border-[#00ccff]/40">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-[#00ccff] text-lg font-semibold">🎤 Real-time Voice Analysis</h3>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${isRecording ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
-                      <span className="text-white text-sm">
-                        {isRecording ? 'Live Analysis' : 'Not Recording'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Voice Quality Metrics Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    {/* Jitter Local */}
-                    <div className="bg-white/10 rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-white text-sm font-medium">Voice Stability</span>
-                        <span className="text-[#00ccff] text-sm font-bold">
-                          {(isRecording && !isPaused ? realtimeVoiceMetrics.jitter_local : 0).toFixed(3)}
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-3 mb-2">
-                        <div
-                          className={`h-3 rounded-full transition-all duration-500 ${
-                            (isRecording && !isPaused ? realtimeVoiceMetrics.jitter_local : 0) < 0.02 
-                              ? 'bg-gradient-to-r from-green-400 to-green-600' 
-                              : (isRecording && !isPaused ? realtimeVoiceMetrics.jitter_local : 0) < 0.05
-                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-600'
-                              : 'bg-gradient-to-r from-red-400 to-red-600'
-                          }`}
-                          style={{ 
-                            width: `${Math.min(Math.max(((isRecording && !isPaused ? realtimeVoiceMetrics.jitter_local : 0) / 0.1) * 100, 0), 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      <div className="text-white/60 text-xs">
-                        Target: &lt;0.02
-                      </div>
-                    </div>
-
-                    {/* Shimmer Local */}
-                    <div className="bg-white/10 rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-white text-sm font-medium">Voice Clarity</span>
-                        <span className="text-[#00ccff] text-sm font-bold">
-                          {(isRecording && !isPaused ? realtimeVoiceMetrics.shimmer_local : 0).toFixed(3)}
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-3 mb-2">
-                        <div
-                          className={`h-3 rounded-full transition-all duration-500 ${
-                            (isRecording && !isPaused ? realtimeVoiceMetrics.shimmer_local : 0) < 0.1 
-                              ? 'bg-gradient-to-r from-green-400 to-green-600' 
-                              : (isRecording && !isPaused ? realtimeVoiceMetrics.shimmer_local : 0) < 0.2
-                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-600'
-                              : 'bg-gradient-to-r from-red-400 to-red-600'
-                          }`}
-                          style={{ 
-                            width: `${Math.min(Math.max(((isRecording && !isPaused ? realtimeVoiceMetrics.shimmer_local : 0) / 0.3) * 100, 0), 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      <div className="text-white/60 text-xs">
-                        Target: &lt;0.1
-                      </div>
-                    </div>
-
-                    {/* HNR Mean */}
-                    <div className="bg-white/10 rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-white text-sm font-medium">Voice Quality</span>
-                        <span className="text-[#00ccff] text-sm font-bold">
-                          {(isRecording && !isPaused ? realtimeVoiceMetrics.hnr_mean : 0).toFixed(1)} dB
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-3 mb-2">
-                        <div
-                          className={`h-3 rounded-full transition-all duration-500 ${
-                            (isRecording && !isPaused ? realtimeVoiceMetrics.hnr_mean : 0) > 20 
-                              ? 'bg-gradient-to-r from-green-400 to-green-600' 
-                              : (isRecording && !isPaused ? realtimeVoiceMetrics.hnr_mean : 0) > 10
-                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-600'
-                              : 'bg-gradient-to-r from-red-400 to-red-600'
-                          }`}
-                          style={{ 
-                            width: `${Math.min(Math.max(((isRecording && !isPaused ? realtimeVoiceMetrics.hnr_mean : 0) / 30) * 100, 0), 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      <div className="text-white/60 text-xs">
-                        Target: &gt;20 dB
-                      </div>
-                    </div>
-
-                    {/* F1 Mean */}
-                    <div className="bg-white/10 rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-white text-sm font-medium">Formant F1</span>
-                        <span className="text-[#00ccff] text-sm font-bold">
-                          {(isRecording && !isPaused ? realtimeVoiceMetrics.f1_mean : 0).toFixed(0)} Hz
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-3 mb-2">
-                        <div
-                          className="h-3 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"
-                          style={{ 
-                            width: `${Math.min(Math.max(((isRecording && !isPaused ? realtimeVoiceMetrics.f1_mean : 0) / 1000) * 100, 0), 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      <div className="text-white/60 text-xs">
-                        Range: 200-1000 Hz
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Rhythm and Flow Metrics */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Rhythm Consistency */}
-                    <div className="bg-white/10 rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-white text-sm font-medium">Rhythm Consistency</span>
-                        <span className="text-[#00ccff] text-sm font-bold">
-                          {(isRecording && !isPaused ? (realtimeVoiceMetrics.rhythm_consistency * 100) : 0).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-3 mb-2">
-                        <div
-                          className={`h-3 rounded-full transition-all duration-500 ${
-                            (isRecording && !isPaused ? realtimeVoiceMetrics.rhythm_consistency : 0) > 0.7 
-                              ? 'bg-gradient-to-r from-green-400 to-green-600' 
-                              : (isRecording && !isPaused ? realtimeVoiceMetrics.rhythm_consistency : 0) > 0.4
-                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-600'
-                              : 'bg-gradient-to-r from-red-400 to-red-600'
-                          }`}
-                          style={{ 
-                            width: `${Math.min(Math.max((isRecording && !isPaused ? (realtimeVoiceMetrics.rhythm_consistency * 100) : 0), 0), 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      <div className="text-white/60 text-xs">
-                        Target: &gt;70%
-                      </div>
-                    </div>
-
-                    {/* Speech Continuity */}
-                    <div className="bg-white/10 rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-white text-sm font-medium">Speech Flow</span>
-                        <span className="text-[#00ccff] text-sm font-bold">
-                          {(isRecording && !isPaused ? (realtimeVoiceMetrics.speech_continuity * 100) : 0).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-3 mb-2">
-                        <div
-                          className={`h-3 rounded-full transition-all duration-500 ${
-                            (isRecording && !isPaused ? realtimeVoiceMetrics.speech_continuity : 0) > 0.8 
-                              ? 'bg-gradient-to-r from-green-400 to-green-600' 
-                              : (isRecording && !isPaused ? realtimeVoiceMetrics.speech_continuity : 0) > 0.6
-                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-600'
-                              : 'bg-gradient-to-r from-red-400 to-red-600'
-                          }`}
-                          style={{ 
-                            width: `${Math.min(Math.max((isRecording && !isPaused ? (realtimeVoiceMetrics.speech_continuity * 100) : 0), 0), 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      <div className="text-white/60 text-xs">
-                        Target: &gt;80%
-                      </div>
-                    </div>
-
-                    {/* Speaking Efficiency */}
-                    <div className="bg-white/10 rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-white text-sm font-medium">Speaking Efficiency</span>
-                        <span className="text-[#00ccff] text-sm font-bold">
-                          {(isRecording && !isPaused ? (realtimeVoiceMetrics.speaking_efficiency * 100) : 0).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-3 mb-2">
-                        <div
-                          className={`h-3 rounded-full transition-all duration-500 ${
-                            (isRecording && !isPaused ? realtimeVoiceMetrics.speaking_efficiency : 0) > 0.8 
-                              ? 'bg-gradient-to-r from-green-400 to-green-600' 
-                              : (isRecording && !isPaused ? realtimeVoiceMetrics.speaking_efficiency : 0) > 0.6
-                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-600'
-                              : 'bg-gradient-to-r from-red-400 to-red-600'
-                          }`}
-                          style={{ 
-                            width: `${Math.min(Math.max((isRecording && !isPaused ? (realtimeVoiceMetrics.speaking_efficiency * 100) : 0), 0), 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      <div className="text-white/60 text-xs">
-                        Target: &gt;80%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Voice Quality Issues & Suggestions */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Voice Quality Issues */}
-                  <div className="p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
-                    <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">🎯 Voice Quality Issues</h3>
-                    
-                    {/* Voice Stability Issues */}
-                    {(isRecording && !isPaused ? realtimeVoiceMetrics.jitter_local : 0) > 0.02 && (
-                      <div className="mb-4 p-3 rounded-lg border-2 bg-red-500/20 border-red-500/50">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-500 text-white">
-                            High Priority
-                          </span>
-                          <h4 className="text-white font-semibold">Voice Instability</h4>
-                        </div>
-                        <p className="text-white/90 text-sm mb-2">
-                          Reduce vocal jitter for clearer speech
-                        </p>
-                        <p className="text-white/70 text-xs bg-white/10 rounded p-2">
-                          Current: {(isRecording && !isPaused ? realtimeVoiceMetrics.jitter_local : 0).toFixed(3)} → Target: &lt;0.02
-                        </p>
-                        <p className="text-red-200 text-xs mt-1">
-                          High - affects voice clarity
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Voice Clarity Issues */}
-                    {(isRecording && !isPaused ? realtimeVoiceMetrics.shimmer_local : 0) > 0.1 && (
-                      <div className="mb-4 p-3 rounded-lg border-2 bg-yellow-500/20 border-yellow-500/50">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="px-2 py-1 rounded-full text-xs font-bold bg-yellow-500 text-white">
-                            Medium Priority
-                          </span>
-                          <h4 className="text-white font-semibold">Voice Clarity Issues</h4>
-                        </div>
-                        <p className="text-white/90 text-sm mb-2">
-                          Work on reducing vocal shimmer for better articulation
-                        </p>
-                        <p className="text-white/70 text-xs bg-white/10 rounded p-2">
-                          Current: {(isRecording && !isPaused ? realtimeVoiceMetrics.shimmer_local : 0).toFixed(3)} → Target: &lt;0.1
-                        </p>
-                        <p className="text-yellow-200 text-xs mt-1">
-                          Medium - affects articulation
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Rhythm Issues */}
-                    {(isRecording && !isPaused ? realtimeVoiceMetrics.rhythm_outliers : 0) >= 3 && (
-                      <div className="mb-4 p-3 rounded-lg border-2 bg-orange-500/20 border-orange-500/50">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="px-2 py-1 rounded-full text-xs font-bold bg-orange-500 text-white">
-                            Medium Priority
-                          </span>
-                          <h4 className="text-white font-semibold">Rhythm Issues</h4>
-                        </div>
-                        <p className="text-white/90 text-sm mb-2">
-                          Aim for consistent speech segment durations
-                        </p>
-                        <p className="text-white/70 text-xs bg-white/10 rounded p-2">
-                          Current: {isRecording && !isPaused ? realtimeVoiceMetrics.rhythm_outliers : 0} → Target: &lt;3
-                        </p>
-                        <p className="text-orange-200 text-xs mt-1">
-                          Medium - affects speech flow
-                        </p>
-                      </div>
-                    )}
-
-                    {/* No Issues */}
-                    {(isRecording && !isPaused ? realtimeVoiceMetrics.jitter_local : 0) <= 0.02 && 
-                     (isRecording && !isPaused ? realtimeVoiceMetrics.shimmer_local : 0) <= 0.1 && 
-                     (isRecording && !isPaused ? realtimeVoiceMetrics.rhythm_outliers : 0) < 3 && (
-                      <div className="text-center py-4">
-                        <p className="text-green-300 text-lg">✅ No Voice Quality Issues Detected!</p>
-                        <p className="text-white/70 text-sm mt-2">Your voice quality is within excellent ranges.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Practice Exercises */}
-                  <div className="p-4 lg:p-6 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg">
-                    <h3 className="text-white text-lg lg:text-xl font-semibold mb-4">🏋️ Practice Exercises</h3>
-                    
-                    {/* Voice Quality Practice */}
-                    {((isRecording && !isPaused ? realtimeVoiceMetrics.jitter_local : 0) > 0.015 || (isRecording && !isPaused ? realtimeVoiceMetrics.shimmer_local : 0) > 0.08) && (
-                      <div className="mb-4 p-3 rounded-lg border-2 bg-blue-500/20 border-blue-500/50">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-500 text-white">
-                            Practice
-                          </span>
-                          <h4 className="text-white font-semibold">Voice Quality Training</h4>
-                        </div>
-                        <p className="text-white/90 text-sm mb-2">
-                          Practice vocal exercises and breathing techniques
-                        </p>
-                        <p className="text-white/70 text-xs bg-white/10 rounded p-2">
-                          Current: Voice quality issues detected → Target: Clear, stable voice
-                        </p>
-                        <p className="text-blue-200 text-xs mt-1">
-                          Improves voice clarity and stability
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Rhythm Practice */}
-                    {((isRecording && !isPaused ? realtimeVoiceMetrics.rhythm_outliers : 0) >= 3 || (isRecording && !isPaused ? realtimeVoiceMetrics.speech_continuity : 0) < 0.8) && (
-                      <div className="mb-4 p-3 rounded-lg border-2 bg-purple-500/20 border-purple-500/50">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="px-2 py-1 rounded-full text-xs font-bold bg-purple-500 text-white">
-                            Practice
-                          </span>
-                          <h4 className="text-white font-semibold">Rhythm and Flow Training</h4>
-                        </div>
-                        <p className="text-white/90 text-sm mb-2">
-                          Practice speaking in 10-second segments with consistent timing
-                        </p>
-                        <p className="text-white/70 text-xs bg-white/10 rounded p-2">
-                          Current: Irregular rhythm detected → Target: Regular, flowing rhythm
-                        </p>
-                        <p className="text-purple-200 text-xs mt-1">
-                          Enhances speech flow and naturalness
-                        </p>
-                      </div>
-                    )}
-
-                    {/* General Voice Practice */}
-                    <div className="mb-4 p-3 rounded-lg border-2 bg-green-500/20 border-green-500/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
-                          Daily Practice
-                        </span>
-                        <h4 className="text-white font-semibold">Breathing Exercises</h4>
-                      </div>
-                      <p className="text-white/90 text-sm mb-2">
-                        Practice deep breathing exercises for 5 minutes before speaking
-                      </p>
-                      <p className="text-white/70 text-xs bg-white/10 rounded p-2">
-                        Current: Not done → Target: Better voice control
-                      </p>
-                      <p className="text-green-200 text-xs mt-1">
-                        Reduces vocal jitter and improves stability
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Animated Image - Fixed Position at End of Each Tab */}
             <motion.div
