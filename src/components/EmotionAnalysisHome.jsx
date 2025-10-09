@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { FaSmile, FaFrown, FaAngry, FaSurprise, FaMeh, FaSadTear, FaEye, FaBrain, FaChartLine, FaBullseye, FaTrophy, FaRocket, FaPlay, FaUsers, FaStar, FaArrowRight, FaCheckCircle, FaLightbulb, FaCog, FaChartBar, FaVideo, FaCrosshairs, FaAward, FaCamera, FaMicrophone, FaAlignLeft, FaHeart, FaShieldAlt } from 'react-icons/fa';
 import emotion1 from '../assets/images/filler1.png';
 import emotion2 from '../assets/images/filler2.jpeg';
-import topicVideo from "../assets/video/filler.mov";
+import topicVideo from "../assets/video/emotion.mp4";
 
 const EmotionAnalysisHome = () => {
   return (
