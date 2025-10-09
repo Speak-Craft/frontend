@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaHeart, FaMicrophone, FaStop, FaPlay, FaPause, FaCamera, FaBrain } from 'react-icons/fa';
+import { FaHeart, FaMicrophone, FaStop, FaPlay, FaPause, FaCamera, FaBrain, FaTrophy } from 'react-icons/fa';
 import Webcam from 'react-webcam';
 import { Bar } from 'react-chartjs-2';
 import Chart from 'chart.js/auto';
 import Gauge from './Gauge';
 import Footer from './Footer';
+import EmotionAnalysisActivity from './EmotionAnalysisActivity';
 
 const BACKEND_ANALYZE = 'http://localhost:8000/analyze';
 const BACKEND_FRAME = 'http://localhost:8000/analyze_frame';
@@ -156,7 +157,8 @@ const EmotionAnalysis = () => {
   // Tab configuration
   const tabs = [
     { id: 'face-analysis', label: 'Face Analyzer', icon: FaCamera },
-    { id: 'emotion-aware', label: 'Emotionally Analyzer', icon: FaBrain }
+    { id: 'emotion-aware', label: 'Emotionally Analyzer', icon: FaBrain },
+    { id: 'activity', label: 'Challenge Mode', icon: FaTrophy }
   ];
 
   // Effects
@@ -555,6 +557,8 @@ const EmotionAnalysis = () => {
         return renderFaceAnalysis();
       case 'emotion-aware':
         return renderEmotionAwareAnalysis();
+      case 'activity':
+        return <EmotionAnalysisActivity />;
       default:
         return renderFaceAnalysis();
     }
@@ -677,8 +681,9 @@ const EmotionAnalysis = () => {
               ref={webcamRef}
               audio={false}
               screenshotFormat="image/jpeg"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover scale-x-[-1]"
               videoConstraints={{ facingMode: 'user' }}
+              mirrored={true}
             />
           </div>
 
@@ -688,14 +693,14 @@ const EmotionAnalysis = () => {
               <button
                 onClick={startRecording}
                 disabled={isRecording}
-                className="px-3 py-2 rounded bg-black text-black disabled:opacity-50 text-sm"
+                className="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
               >
                 Start
               </button>
               <button
                 onClick={stopRecording}
                 disabled={!isRecording}
-                className="px-3 py-2 rounded bg-gray-700 text-black disabled:opacity-50 text-sm"
+                className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
               >
                 Stop
               </button>
@@ -707,27 +712,27 @@ const EmotionAnalysis = () => {
           </div>
 
           {/* Live Emotion Tracking */}
-          <div className="w-full mt-4 bg-gradient-to-r from-[#00171f] to-[#003b46] rounded-lg border-2 border-[#00ccff]/40 p-4">
-            <div className="flex justify-between items-center mb-3">
+          <div className="w-full mt-4 bg-gradient-to-r from-[#00171f] to-[#003b46] rounded-lg border-2 border-[#00ccff]/40 p-5">
+            <div className="flex justify-between items-center mb-4">
               <h3 className="text-[#00ccff] text-base font-semibold">🟦 Live Emotion (smoothed {windowSec}s)</h3>
-              <span className="text-sm text-white/80">{liveTop || '—'}</span>
+              <span className="text-sm font-bold text-white bg-[#00ccff]/20 px-3 py-1 rounded-full">{liveTop || '—'}</span>
             </div>
             {Object.keys(liveProbs).length === 0 ? (
-              <p className="text-white/70 text-center py-4 text-sm">No face detected yet…</p>
+              <p className="text-white/70 text-center py-6 text-sm">No face detected yet…</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {EMOTIONS.map((lab) => {
                   const val = Math.round(liveProbs[lab] ?? 0);
                   return (
                     <div key={lab} className="flex items-center gap-3">
-                      <span className="w-20 shrink-0 text-sm text-white">{lab}</span>
-                      <div className="flex-1 h-3 rounded bg-[#0b4952]">
+                      <span className="w-20 shrink-0 text-sm font-medium text-white">{lab}</span>
+                      <div className="flex-1 h-4 rounded-full bg-[#0b4952] overflow-hidden">
                         <div
-                          className="h-3 rounded transition-[width] duration-200"
+                          className="h-4 rounded-full transition-[width] duration-200"
                           style={{ width: `${Math.min(100, val)}%`, background: '#00d1d1' }}
                         />
                       </div>
-                      <span className="w-12 shrink-0 text-sm text-right text-white">{val}%</span>
+                      <span className="w-12 shrink-0 text-sm text-right font-semibold text-white">{val}%</span>
                     </div>
                   );
                 })}
@@ -981,7 +986,7 @@ const EmotionAnalysis = () => {
               <div className="mt-4">
                 <button 
                   onClick={() => setActiveTab('face-analysis')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-colors shadow-lg"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-black font-semibold text-sm hover:bg-emerald-700 transition-colors shadow-lg"
                 >
                   Start Training
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -1100,7 +1105,7 @@ const EmotionAnalysis = () => {
               <div className="mt-3">
                 <button 
                   onClick={() => setActiveTab('face-analysis')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-colors shadow-lg"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-black font-semibold text-sm hover:bg-emerald-700 transition-colors shadow-lg"
                 >
                   Start Training
                 </button>
@@ -1145,11 +1150,11 @@ const EmotionAnalysis = () => {
 
   return (
     <div className="absolute top-[4rem] left-0 w-full lg:left-64 lg:w-[calc(100%-17rem)] p-3 sm:p-4 lg:p-8 flex justify-center items-start overflow-y-auto">
-      <div className="w-full h-auto lg:h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-3 sm:p-4 lg:p-6 flex flex-col justify-start items-center">
+      <div className="w-full h-auto lg:h-full bg-gradient-to-b from-[#003b46] to-[#07575b] text-white shadow-xl rounded-2xl p-3 sm:p-4 lg:p-6 flex flex-col justify-start items-center">
         <div className="flex flex-col lg:flex-row w-full h-auto lg:h-full gap-3 sm:gap-4 lg:gap-8">
           {/* LEFT PANEL - Camera Controls */}
           <div
-            className="bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] w-full lg:min-w-[800px] rounded-xl shadow-xl p-3 sm:p-4 lg:p-6 flex flex-col mx-auto overflow-hidden"
+            className="bg-gradient-to-b from-[#00171f] to-[#003b46] w-full lg:min-w-[800px] rounded-xl shadow-xl p-3 sm:p-4 lg:p-6 flex flex-col mx-auto overflow-hidden"
             style={{ height: 'calc(100vh - 1rem)' }}
           >
             {/* Title - Fixed
@@ -1246,8 +1251,9 @@ const EmotionAnalysis = () => {
                     ref={webcamRef}
                     audio={false}
                     screenshotFormat="image/jpeg"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover scale-x-[-1]"
                     videoConstraints={{ facingMode: 'user' }}
+                    mirrored={true}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white/70 text-sm">
@@ -1263,16 +1269,16 @@ const EmotionAnalysis = () => {
                 <button
                   onClick={startRecording}
                   disabled={isRecording}
-                  className="bg-white p-3 rounded-full shadow-md disabled:opacity-50"
+                  className="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-black p-3 rounded-full shadow-md transition-colors"
                 >
-                  <FaPlay className="text-black text-lg" />
+                  <FaPlay className="text-lg" />
                 </button>
                 <button
                   onClick={stopRecording}
                   disabled={!isRecording}
-                  className="bg-white p-3 rounded-full shadow-md disabled:opacity-50"
+                  className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-black p-3 rounded-full shadow-md transition-colors"
                 >
-                  <FaStop className="text-black text-lg" />
+                  <FaStop className="text-lg" />
                 </button>
               </div>
               <p className="text-white/80 text-xs mt-1">
@@ -1285,27 +1291,27 @@ const EmotionAnalysis = () => {
 
           
             {/* Live Emotion Tracking - Scrollable only this section */}
-            <div className="w-full flex-1 bg-gradient-to-r from-[#00171f] to-[#003b46] rounded-lg border-2 border-[#00ccff]/40 p-3 overflow-y-auto min-h-0">
-              <div className="flex justify-between items-center mb-2 flex-shrink-0">
-                <h3 className="text-[#00ccff] text-sm font-semibold">🟦 Live Emotion (smoothed {windowSec}s)</h3>
-                <span className="text-xs text-white/80">{liveTop || '—'}</span>
+            <div className="w-full flex-1 bg-gradient-to-r from-[#00171f] to-[#003b46] rounded-lg border-2 border-[#00ccff]/40 p-5 overflow-y-auto min-h-0">
+              <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                <h3 className="text-[#00ccff] text-base font-semibold">🟦 Live Emotion (smoothed {windowSec}s)</h3>
+                <span className="text-sm font-bold text-white bg-[#00ccff]/20 px-3 py-1 rounded-full">{liveTop || '—'}</span>
               </div>
               {Object.keys(liveProbs).length === 0 ? (
-                <p className="text-white/70 text-center py-3 text-xs">No face detected yet…</p>
+                <p className="text-white/70 text-center py-6 text-sm">No face detected yet…</p>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-3">
                   {EMOTIONS.map((lab) => {
                     const val = Math.round(liveProbs[lab] ?? 0);
                     return (
-                      <div key={lab} className="flex items-center gap-2">
-                        <span className="w-16 shrink-0 text-xs text-white">{lab}</span>
-                        <div className="flex-1 h-2.5 rounded bg-[#0b4952]">
+                      <div key={lab} className="flex items-center gap-3">
+                        <span className="w-20 shrink-0 text-sm font-medium text-white">{lab}</span>
+                        <div className="flex-1 h-4 rounded-full bg-[#0b4952] overflow-hidden">
                           <div
-                            className="h-2.5 rounded transition-[width] duration-200"
+                            className="h-4 rounded-full transition-[width] duration-200"
                             style={{ width: `${Math.min(100, val)}%`, background: '#00d1d1' }}
                           />
                         </div>
-                        <span className="w-10 shrink-0 text-xs text-right text-white">{val}%</span>
+                        <span className="w-12 shrink-0 text-sm text-right font-semibold text-white">{val}%</span>
                       </div>
                     );
                   })}
@@ -1321,8 +1327,8 @@ const EmotionAnalysis = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "face-analysis"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-black"
+                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-black/30"
                 }`}
                 onClick={() => setActiveTab("face-analysis")}
               >
@@ -1334,14 +1340,15 @@ const EmotionAnalysis = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "emotion-aware"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46]"
+                    : "bg-[#e0f7fa] text-[#003b46]/70"
                 }`}
                 onClick={() => setActiveTab("emotion-aware")}
               >
                 <FaBrain />
                 Emotionally Analyzer
               </button>
+
             </div>
 
             {/* Tab Content */}
@@ -1401,7 +1408,7 @@ const EmotionAnalysis = () => {
                 {/* Metrics Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6 w-full">
                   {/* Face Detection */}
-                  <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
+                  <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46]">
                     <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">Face Detection</h3>
                     <div className={`flex justify-center items-center rounded-full w-16 h-16 lg:w-20 lg:h-20 text-xl font-semibold border-2 ${
                       faceDetected ? 'bg-green-500/30 text-green-300 border-green-500/50' : 'bg-red-500/30 text-red-300 border-red-500/50'
@@ -1412,7 +1419,7 @@ const EmotionAnalysis = () => {
                   </div>
 
                   {/* Visible Time */}
-                  <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
+                  <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46]">
                     <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">Visible Time</h3>
                     <div className="flex justify-center items-center rounded-full w-16 h-16 lg:w-20 lg:h-20 bg-blue-500/30 text-blue-300 text-xl font-semibold border-2 border-blue-500/50">
                       {visibleSeconds}s
@@ -1421,7 +1428,7 @@ const EmotionAnalysis = () => {
                   </div>
 
                   {/* Engagement Score */}
-                  <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
+                  <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46]">
                     <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">Engagement</h3>
                     <div className="flex justify-center items-center rounded-full w-16 h-16 lg:w-20 lg:h-20 bg-emerald-500/30 text-emerald-300 text-xl font-semibold border-2 border-emerald-500/50">
                       {Math.round((visibleSeconds / (visibleSeconds + awaySeconds || 1)) * 100)}%
@@ -1430,7 +1437,7 @@ const EmotionAnalysis = () => {
                   </div>
 
                   {/* Top Emotion */}
-                  <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]">
+                  <div className="flex flex-col items-center rounded-lg p-3 lg:p-4 bg-gradient-to-b from-[#00171f] to-[#003b46]">
                     <h3 className="text-white text-sm lg:text-lg font-semibold mb-2">Top Emotion</h3>
                     <div className="flex justify-center items-center rounded-full w-16 h-16 lg:w-20 lg:h-20 bg-purple-500/30 text-purple-300 text-lg font-semibold border-2 border-purple-500/50">
                       {summaryTop3[0]?.[0] || '—'}
