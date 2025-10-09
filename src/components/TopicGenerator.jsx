@@ -48,9 +48,9 @@ const TopicGenerator = () => {
   };
 
   return (
-    <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] p-4 lg:p-8 flex justify-center items-center">
-      <div className="w-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-8">
-        <div className="flex flex-col lg:flex-row gap-6 w-full">
+    <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] h-[calc(100vh-5rem)] p-4 lg:p-8 flex justify-center items-center overflow-hidden">
+      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-8 overflow-hidden">
+        <div className="flex flex-col lg:flex-row gap-6 w-full h-full overflow-hidden">
           {/* Left: Input Panel */}
           <motion.div
             className="w-full lg:w-[420px] xl:w-[480px] shrink-0 self-start sticky top-6 max-h-[calc(100vh-8rem)] overflow-auto bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-2xl p-5 border-2 border-[#00ccff]/40"
