@@ -395,20 +395,20 @@ const LoudnessActivities = () => {
   };
 
   return (
-    <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] p-4 lg:p-8 flex justify-center items-center">
-      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-6 flex flex-col justify-center items-center">
-        <div className="flex flex-col lg:flex-row w-full h-full gap-4 lg:gap-8">
+    <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] h-[calc(100vh-5rem)] p-4 lg:p-8 flex justify-center items-center overflow-hidden">
+      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-6 flex flex-col overflow-hidden">
+        <div className="flex flex-col lg:flex-row w-full h-full gap-4 lg:gap-8 overflow-hidden">
           
           {/* Left Side - Game Controls */}
           <div
-            className="bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6]"
+            className="bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] overflow-y-auto"
             style={{
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               width: "100%",
               maxWidth: "500px",
-              height: "auto",
+              height: "100%",
               margin: "0 auto",
               borderRadius: "1rem",
               boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
@@ -623,7 +623,7 @@ const LoudnessActivities = () => {
                     <p className="text-gray-500 text-sm">Play the game to see your scores here!</p>
                   </div>
                 ) : (
-                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
                     {previousScores.map((score, index) => (
                       <motion.div
                         key={score._id}
@@ -679,7 +679,7 @@ const LoudnessActivities = () => {
                     <p className="text-gray-500 text-sm">Complete some exercises to see them here!</p>
                   </div>
                 ) : (
-                  <div className="space-y-4 max-h-80 overflow-y-auto">
+                  <div className="space-y-4 max-h-[500px] overflow-y-auto">
                     {exercises.map((ex, index) => (
                       <motion.div
                         key={ex._id}
@@ -714,8 +714,8 @@ const LoudnessActivities = () => {
           </div>
 
           {/* Right Side - Tabs and Content */}
-          <div className="w-full flex flex-col">
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4 overflow-x-auto">
+          <div className="w-full flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4 overflow-x-auto flex-shrink-0">
               {/* Game Tab */}
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
@@ -770,7 +770,7 @@ const LoudnessActivities = () => {
             </div>
 
             {/* Tab Content Area */}
-            <div className="flex-1 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg p-6">
+            <div className="flex-1 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg p-6 overflow-y-auto">
               {activeTab === "game" && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
