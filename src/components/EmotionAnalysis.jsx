@@ -1265,14 +1265,14 @@ const EmotionAnalysis = () => {
                   disabled={isRecording}
                   className="bg-white p-3 rounded-full shadow-md disabled:opacity-50"
                 >
-                  <FaPlay className="text-white text-lg" />
+                  <FaPlay className="text-black text-lg" />
                 </button>
                 <button
                   onClick={stopRecording}
                   disabled={!isRecording}
                   className="bg-white p-3 rounded-full shadow-md disabled:opacity-50"
                 >
-                  <FaStop className="text-white text-lg" />
+                  <FaStop className="text-black text-lg" />
                 </button>
               </div>
               <p className="text-white/80 text-xs mt-1">
