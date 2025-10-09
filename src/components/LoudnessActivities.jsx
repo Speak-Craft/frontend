@@ -396,12 +396,12 @@ const LoudnessActivities = () => {
 
   return (
     <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] h-[calc(100vh-5rem)] p-4 lg:p-8 flex justify-center items-center overflow-hidden">
-      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-6 flex flex-col overflow-hidden">
+      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] text-white shadow-xl rounded-2xl p-4 lg:p-6 flex flex-col overflow-hidden">
         <div className="flex flex-col lg:flex-row w-full h-full gap-4 lg:gap-8 overflow-hidden">
           
           {/* Left Side - Game Controls */}
           <div
-            className="bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] overflow-y-auto"
+            className="bg-gradient-to-b from-[#00171f] to-[#003b46] overflow-y-auto"
             style={{
               display: "flex",
               flexDirection: "column",
@@ -479,8 +479,7 @@ const LoudnessActivities = () => {
                   <motion.button
                     onClick={startGame}
                     disabled={isRunning || hasWon}
-                    style={{ color: '#0084a6' }}
-                    className="bg-green-500 hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
+                    className="bg-green-500 hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-black px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -493,8 +492,7 @@ const LoudnessActivities = () => {
                       setMessage("Game stopped. Click Start to try again.");
                     }}
                     disabled={!isRunning}
-                    style={{ color: '#0084a6' }}
-                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
+                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-black px-6 py-3 rounded-lg font-semibold flex items-center gap-2"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -521,9 +519,8 @@ const LoudnessActivities = () => {
                 {!exercise && (
                   <motion.button
                     onClick={startExercise}
-                    className="bg-yellow-400 hover:bg-yellow-500 text-black px-6 py-3 rounded-2xl shadow-md font-semibold text-lg w-full flex items-center justify-center gap-2"
+                    className="bg-yellow-400 hover:bg-yellow-500 text-[#003b46] px-6 py-3 rounded-2xl shadow-md font-semibold text-lg w-full flex items-center justify-center gap-2"
                     whileHover={{ scale: 1.05 }}
-                    style={{ color: '#0084a6' }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <FaRocket />
@@ -577,7 +574,7 @@ const LoudnessActivities = () => {
                       {!exercise.completed && (
                         <motion.button
                           onClick={stopExercise}
-                          className="bg-red-400 hover:bg-red-500 text-black border border-white px-5 py-2 rounded-lg font-medium shadow-md flex items-center gap-2"
+                          className="bg-red-500 hover:bg-red-600 text-white border border-white px-5 py-2 rounded-lg font-medium shadow-md flex items-center gap-2"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
@@ -589,7 +586,7 @@ const LoudnessActivities = () => {
                       {exercise.completed && (
                         <motion.button
                           onClick={updateProgress}
-                          className="bg-emerald-400 hover:bg-emerald-500 text-black px-5 py-2 rounded-lg font-medium shadow-md flex items-center gap-2"
+                          className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg font-medium shadow-md flex items-center gap-2"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
@@ -720,8 +717,8 @@ const LoudnessActivities = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "game"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46]"
+                    : "bg-[#e0f7fa] text-[#003b46]/70"
                 }`}
                 onClick={() => setActiveTab("game")}
               >
@@ -733,8 +730,8 @@ const LoudnessActivities = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "exercise"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46]"
+                    : "bg-[#e0f7fa] text-[#003b46]/70"
                 }`}
                 onClick={() => setActiveTab("exercise")}
               >
@@ -746,8 +743,8 @@ const LoudnessActivities = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "scores"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46]"
+                    : "bg-[#e0f7fa] text-[#003b46]/70"
                 }`}
                 onClick={() => setActiveTab("scores")}
               >
@@ -759,8 +756,8 @@ const LoudnessActivities = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "history"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46]"
+                    : "bg-[#e0f7fa] text-[#003b46]/70"
                 }`}
                 onClick={() => setActiveTab("history")}
               >
@@ -770,7 +767,7 @@ const LoudnessActivities = () => {
             </div>
 
             {/* Tab Content Area */}
-            <div className="flex-1 bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-lg p-6 overflow-y-auto">
+            <div className="flex-1 bg-gradient-to-b from-[#00171f] to-[#003b46] rounded-lg p-6 overflow-y-auto">
               {activeTab === "game" && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}

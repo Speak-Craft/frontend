@@ -67,10 +67,10 @@ const QuestionGeneration = () => {
 
   return (
     <div className="absolute top-[4rem] left-64 w-[calc(100%-17rem)] h-[calc(100vh-5rem)] p-4 lg:p-8 flex justify-center items-center overflow-hidden">
-      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] dark:from-[#00171f] dark:to-[#003b46] text-white shadow-xl rounded-2xl p-4 lg:p-8 overflow-hidden">
+      <div className="w-full h-full bg-gradient-to-b from-[#003b46] to-[#07575b] text-white shadow-xl rounded-2xl p-4 lg:p-8 overflow-hidden">
         <div className="flex flex-col lg:flex-row gap-6 w-full h-full overflow-hidden">
           <motion.div
-            className="w-full lg:w-[420px] xl:w-[480px] shrink-0 self-start sticky top-6 max-h-[calc(100vh-8rem)] overflow-auto bg-gradient-to-b from-[#00171f] to-[#003b46] dark:from-[#003b46] dark:to-[#0084a6] rounded-2xl p-5 border-2 border-[#00ccff]/40"
+            className="w-full lg:w-[420px] xl:w-[480px] shrink-0 self-start sticky top-6 max-h-[calc(100vh-8rem)] overflow-auto bg-gradient-to-b from-[#00171f] to-[#003b46] rounded-2xl p-5 border-2 border-[#00ccff]/40"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -151,7 +151,7 @@ const QuestionGeneration = () => {
 
                 <button
                   onClick={clearCurrent}
-                  className="px-6 py-3 rounded-xl font-bold shadow-lg border-2 transition-colors duration-200 focus:outline-none focus:ring-4 bg-[#ff6b6b] hover:bg-[#ff5252] text-[#003b46] border-[#ff8787] focus:ring-red-300"
+                  className="px-6 py-3 rounded-xl font-bold shadow-lg border-2 transition-colors duration-200 focus:outline-none focus:ring-4 bg-[#d0ebff] hover:bg-[#bfe5ff] text-[#003b46] border-[#00ccff] focus:ring-[#00ccff]/30"
                   title="Clear current session"
                 >
                   Clear

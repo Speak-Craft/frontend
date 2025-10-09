@@ -503,8 +503,8 @@ const FillerWords = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "record"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-black"
+                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-black/60"
                 }`}
                 onClick={() => setActiveTab("record")}
               >
@@ -516,8 +516,8 @@ const FillerWords = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "saved"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-black"
+                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-black/60"
                 }`}
                 
                 onClick={() => setActiveTab("saved")}
@@ -611,7 +611,7 @@ const FillerWords = () => {
             {/* Saved Recordings Tab */}
             {activeTab === "saved" && (
               <div className="flex flex-col w-full">
-                <h2 className="text-xl lg:text-2xl font-bold text-white mt-2 mb-4">
+                <h2 className="text-xl lg:text-2xl font-bold text-black mt-2 mb-4">
                   Saved Recordings
                 </h2>
                 {savedRecs.length > 0 ? (

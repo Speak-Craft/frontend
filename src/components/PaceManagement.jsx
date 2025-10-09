@@ -2141,8 +2141,8 @@ const PaceManagement = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "rate"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-black"
+                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-black/60"
                 }`}
                 onClick={() => setActiveTab("rate")}
               >
@@ -2154,8 +2154,8 @@ const PaceManagement = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "pause"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-black"
+                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-black/60"
                 }`}
                 onClick={() => setActiveTab("pause")}
               >
@@ -2167,8 +2167,8 @@ const PaceManagement = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "advanced"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-black"
+                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-black/60"
                 }`}
                 onClick={() => setActiveTab("advanced")}
               >
@@ -2180,8 +2180,8 @@ const PaceManagement = () => {
               <button
                 className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                   activeTab === "voice"
-                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                    ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-black"
+                    : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-black/60"
                 }`}
                 onClick={() => setActiveTab("voice")}
               >

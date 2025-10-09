@@ -1786,8 +1786,8 @@ const PaceManagementActivity = () => {
                 <button
                   className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                     realTimeTab === "challenge"
-                      ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                      : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                      ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-black"
+                      : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-black/30"
                   }`}
                   onClick={() => setRealTimeTab("challenge")}
                 >
@@ -1797,8 +1797,8 @@ const PaceManagementActivity = () => {
                 <button
                   className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                     realTimeTab === "scores"
-                      ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                      : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                      ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-black"
+                      : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-black/30"
                   }`}
                   onClick={() => setRealTimeTab("scores")}
                 >
@@ -2052,8 +2052,8 @@ const PaceManagementActivity = () => {
                       key={tabKey}
                       className={`px-3 lg:px-4 py-2 rounded-t-lg font-semibold transition-colors duration-200 text-sm lg:text-base whitespace-nowrap flex items-center gap-2 ${
                         activeTab === tabKey
-                          ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-white"
-                          : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-white/60"
+                          ? "bg-[#d0ebff] text-[#003b46] dark:bg-[#004b5b] dark:text-black"
+                          : "bg-[#e0f7fa] text-[#919b9e] dark:bg-[#002b36] dark:text-black/30"
                       }`}
                       onClick={() => setActiveTab(tabKey)}
                     >
