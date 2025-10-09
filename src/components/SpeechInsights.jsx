@@ -7,6 +7,7 @@ import {
   FaSmile
 } from "react-icons/fa";
 import Webcam from "react-webcam";
+import GaugeChart from "react-gauge-chart";
 import axios from "axios";
 import jsPDF from "jspdf";
 import * as htmlToImage from "html-to-image";
@@ -14,12 +15,44 @@ import * as htmlToImage from "html-to-image";
 const BACKEND_FRAME = 'http://localhost:8000/analyze_frame';
 const EMOTIONS = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise'];
 
+// WPM label calculation (from PaceManagement.jsx)
+const getWpmLabel = (wpm) => {
+  if (!wpm || wpm <= 0 || wpm > 500) return "Slow";
+  if (wpm < 100) return "Slow";
+  if (wpm <= 150) return "Ideal";
+  return "Fast";
+};
+
+const getWpmEmoji = (label) => {
+  switch (label) {
+    case "Slow": return "🟡";
+    case "Ideal": return "🟢";
+    case "Fast": return "🟠";
+    default: return "❓";
+  }
+};
+
+const getWpmFeedback = (wpm, label) => {
+  switch (label) {
+    case "Slow":
+      return "Your pace is below the ideal range. Try to increase your speaking speed by 15-20 WPM.";
+    case "Ideal":
+      return "Excellent! You're speaking at an optimal pace for audience engagement.";
+    case "Fast":
+      return "Your pace is above optimal. Slow down slightly to ensure audience comprehension.";
+    default:
+      return "Unable to determine pace category.";
+  }
+};
+
 const SpeechInsights = () => {
   // Remove navigation state - no tabs needed
   
   // Recording states
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const isRecordingRef = useRef(false);
+  const isPausedRef = useRef(false);
   const [recordTime, setRecordTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
   const [videoBlob, setVideoBlob] = useState(null);
@@ -38,6 +71,24 @@ const SpeechInsights = () => {
   const [loudnessColor, setLoudnessColor] = useState("#3498db");
   const [waveform, setWaveform] = useState([]);
   
+  // Real-time Voice Quality Metrics
+  const [realtimeVoiceMetrics, setRealtimeVoiceMetrics] = useState({
+    jitter_local: 0,
+    shimmer_local: 0,
+    hnr_mean: 0,
+    rhythm_consistency: 0,
+    speech_continuity: 0,
+    speaking_efficiency: 0
+  });
+  const [isAnalyzingVoice, setIsAnalyzingVoice] = useState(false);
+
+  // Debug: Log when voice metrics change
+  useEffect(() => {
+    if (realtimeVoiceMetrics.jitter_local > 0 || realtimeVoiceMetrics.hnr_mean > 0) {
+      console.log('📊 Voice Metrics State Updated:', realtimeVoiceMetrics);
+    }
+  }, [realtimeVoiceMetrics]);
+  
   // Camera states
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState(null);
@@ -47,6 +98,9 @@ const SpeechInsights = () => {
   const [liveTop, setLiveTop] = useState(null);
   const [liveProbs, setLiveProbs] = useState({});
   const [liveSamples, setLiveSamples] = useState(0);
+  const [visibleSeconds, setVisibleSeconds] = useState(0);
+  const [awaySeconds, setAwaySeconds] = useState(0);
+  const [emotionSummary, setEmotionSummary] = useState([]);
   
   // Refs
   const mediaRecorderRef = useRef(null);
@@ -58,6 +112,11 @@ const SpeechInsights = () => {
   const framesRef = useRef([]);
   const mediaStreamRef = useRef(null); // Store the main stream
   
+  // Face tracking refs
+  const lastFaceStatusRef = useRef(null);
+  const visibleCountRef = useRef(0);
+  const awayCountRef = useRef(0);
+  
   // Loudness monitoring refs
   const audioContextRef = useRef(null);
   const analyserLoudnessRef = useRef(null);
@@ -68,16 +127,26 @@ const SpeechInsights = () => {
   const chunkTimerRef = useRef(null);
   const skipFirstChunkRef = useRef(false);
   const waveformCanvasRef = useRef(null);
+  const voiceAnalysisTimerRef = useRef(null);
   
   // Settings for emotion analysis
   const [windowSec] = useState(3);
   const [emaAlpha] = useState(0.4);
 
-  // Timer effect
+  // Timer effect with face tracking
   useEffect(() => {
     if (isRecording && !isPaused) {
       timerRef.current = setInterval(() => {
         setRecordTime(prev => prev + 1);
+        
+        // Track visible/away seconds
+        if (lastFaceStatusRef.current === true) {
+          visibleCountRef.current++;
+          setVisibleSeconds(visibleCountRef.current);
+        } else if (lastFaceStatusRef.current === false) {
+          awayCountRef.current++;
+          setAwaySeconds(awayCountRef.current);
+        }
       }, 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -104,6 +173,9 @@ const SpeechInsights = () => {
       }
       if (chunkTimerRef.current) {
         clearInterval(chunkTimerRef.current);
+      }
+      if (voiceAnalysisTimerRef.current) {
+        clearInterval(voiceAnalysisTimerRef.current);
       }
     };
   }, []);
@@ -280,6 +352,226 @@ const SpeechInsights = () => {
     }
   };
 
+  // Helper to create WAV blob for voice quality analysis
+  const createWavBlob = (float32Array, sampleRate) => {
+    const to16 = (input) => {
+      const buffer = new ArrayBuffer(input.length * 2);
+      const view = new DataView(buffer);
+      let offset = 0;
+      for (let i = 0; i < input.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, input[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      }
+      return buffer;
+    };
+    
+    const writeHdr = (view, sampleRate, numSamples) => {
+      const set32 = (o, v) => view.setUint32(o, v, true);
+      const set16 = (o, v) => view.setUint16(o, v, true);
+      set32(0, 0x46464952); // RIFF
+      set32(4, 36 + numSamples * 2);
+      set32(8, 0x45564157); // WAVE
+      set32(12, 0x20746d66); // fmt 
+      set32(16, 16);
+      set16(20, 1);
+      set16(22, 1);
+      set32(24, sampleRate);
+      set32(28, sampleRate * 2);
+      set16(32, 2);
+      set16(34, 16);
+      set32(36, 0x61746164); // data
+      set32(40, numSamples * 2);
+    };
+    
+    const pcm = to16(float32Array);
+    const wav = new ArrayBuffer(44 + pcm.byteLength);
+    const view = new DataView(wav);
+    writeHdr(view, sampleRate, float32Array.length);
+    new Uint8Array(wav, 44).set(new Uint8Array(pcm));
+    return new Blob([wav], { type: 'audio/wav' });
+  };
+
+  // Send voice quality analysis
+  const sendVoiceQualityAnalysis = async (wavBlob) => {
+    try {
+      console.log('🎤 Sending voice quality analysis, blob size:', wavBlob.size);
+      
+      const formData = new FormData();
+      formData.append('file', wavBlob, 'recording.wav');
+      
+      const response = await fetch('http://localhost:8000/pause/pause-analysis/', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        console.error('Voice quality API error:', response.status);
+        return;
+      }
+      
+      const result = await response.json();
+      console.log('Voice quality analysis response:', result);
+      
+      if (result.advancedMetrics) {
+        const metrics = result.advancedMetrics;
+        console.log('Voice quality features:', metrics);
+        
+        // Calculate more realistic display values based on voice quality and rhythm
+        const jitter = metrics.jitter_local || 0;
+        const shimmer = metrics.shimmer_local || 0;
+        const hnr = metrics.hnr_mean || 0;
+        const rhythmConsistency = metrics.rhythm_consistency || 0;
+        
+        // Use actual backend values directly for speech_continuity and speaking_efficiency
+        const actualSpeechContinuity = metrics.speech_continuity || 0;
+        const actualSpeakingEfficiency = metrics.speaking_efficiency || 0;
+        
+        // If both are very high (>0.95), might mean no speech detected
+        let speechFlow = actualSpeechContinuity;
+        let speakingEfficiency = actualSpeakingEfficiency;
+        
+        // If no meaningful voice quality detected (all zeros), set to 0
+        if (jitter === 0 && shimmer === 0 && hnr === 0) {
+          speechFlow = 0;
+          speakingEfficiency = 0;
+        } else if (actualSpeechContinuity >= 0.95 && actualSpeakingEfficiency >= 0.95) {
+          // Very high values - consider voice quality
+          const voiceQualityScore = Math.max(0, 1.0 - (jitter * 20) - (shimmer * 2) + (hnr / 25));
+          const rhythmScore = Math.max(0, rhythmConsistency - (metrics.rhythm_outliers || 0) * 0.1);
+          speechFlow = Math.min(1.0, Math.max(0.0, (voiceQualityScore + rhythmScore + actualSpeechContinuity) / 3));
+          speakingEfficiency = Math.min(1.0, Math.max(0.0, (speechFlow + rhythmConsistency) / 2));
+        }
+        
+        setRealtimeVoiceMetrics({
+          jitter_local: jitter,
+          shimmer_local: shimmer,
+          hnr_mean: hnr,
+          rhythm_consistency: rhythmConsistency,
+          speech_continuity: speechFlow,
+          speaking_efficiency: speakingEfficiency
+        });
+        
+        console.log('✅ Voice metrics updated:', {
+          jitter, shimmer, hnr, rhythmConsistency, speechFlow, speakingEfficiency
+        });
+      } else {
+        console.error('Voice quality analysis failed:', result.error);
+      }
+    } catch (error) {
+      console.error('Error sending voice quality analysis:', error);
+    }
+  };
+
+  // Real-time voice quality analysis
+  const analyzeRealtimeVoice = async () => {
+    // Use refs to get current state (avoid stale closure)
+    const currentlyRecording = isRecordingRef.current;
+    const currentlyPaused = isPausedRef.current;
+    
+    if (!currentlyRecording || currentlyPaused || !mediaStreamRef.current || isAnalyzingVoice) {
+      console.log('⏸️ Skipping voice analysis:', { 
+        isRecording: currentlyRecording, 
+        isPaused: currentlyPaused, 
+        hasStream: !!mediaStreamRef.current, 
+        isAnalyzingVoice 
+      });
+      return;
+    }
+
+    setIsAnalyzingVoice(true);
+    console.log('🎙️ Starting real-time voice analysis...');
+    
+    try {
+      // IMPORTANT: Check if audio context exists (like PaceManagement.jsx does)
+      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+        console.warn('⚠️ Audio context not ready, skipping voice analysis');
+        setIsAnalyzingVoice(false);
+        return;
+      }
+
+      // Create a temporary audio context for recording audio
+      const tempAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = tempAudioContext.createMediaStreamSource(mediaStreamRef.current);
+      const processor = tempAudioContext.createScriptProcessor(4096, 1, 1);
+      
+      const pcmBuffer = [];
+      let isProcessing = false;
+      
+      processor.onaudioprocess = (event) => {
+        if (isProcessing || !isRecordingRef.current || isPausedRef.current) return;
+        isProcessing = true;
+        
+        const input = event.inputBuffer.getChannelData(0);
+        pcmBuffer.push(...input);
+        
+        isProcessing = false;
+      };
+      
+      source.connect(processor);
+      processor.connect(tempAudioContext.destination);
+      
+      // Record for 5 seconds (same as PaceManagement.jsx)
+      setTimeout(async () => {
+        console.log('📊 Captured audio buffer length:', pcmBuffer.length);
+        
+        // Check current state using refs
+        if (!isRecordingRef.current || isPausedRef.current) {
+          console.log('❌ Recording stopped during capture, resetting metrics');
+          // Clean up and reset to 0 if not recording
+          try {
+            processor.disconnect();
+            source.disconnect();
+            tempAudioContext.close();
+          } catch (e) {
+            console.warn('Cleanup error:', e);
+          }
+          setRealtimeVoiceMetrics({
+            jitter_local: 0,
+            shimmer_local: 0,
+            hnr_mean: 0,
+            rhythm_consistency: 0,
+            speech_continuity: 0,
+            speaking_efficiency: 0
+          });
+          return;
+        }
+        
+        // Convert PCM data to WAV and send for analysis
+        if (pcmBuffer.length > 0) {
+          console.log('✅ Converting PCM to WAV, sample rate:', tempAudioContext.sampleRate);
+          const wavBlob = createWavBlob(new Float32Array(pcmBuffer), tempAudioContext.sampleRate);
+          console.log('📦 WAV blob created, size:', wavBlob.size);
+          await sendVoiceQualityAnalysis(wavBlob);
+        } else {
+          console.warn('⚠️ No PCM data captured!');
+        }
+        
+        // Clean up
+        try {
+          processor.disconnect();
+          source.disconnect();
+          tempAudioContext.close();
+        } catch (e) {
+          console.warn('Cleanup error:', e);
+        }
+      }, 5000); // 5 seconds (same as PaceManagement.jsx)
+      
+    } catch (error) {
+      console.error("❌ Real-time voice analysis error:", error);
+      // Reset to 0 on error
+      setRealtimeVoiceMetrics({
+        jitter_local: 0,
+        shimmer_local: 0,
+        hnr_mean: 0,
+        rhythm_consistency: 0,
+        speech_continuity: 0,
+        speaking_efficiency: 0
+      });
+    } finally {
+      setIsAnalyzingVoice(false);
+    }
+  };
+
   // Live frame analysis for emotion detection
   const sendLiveFrame = async () => {
     try {
@@ -339,11 +631,19 @@ const SpeechInsights = () => {
     if (isRecording) return;
     
     try {
+      setCameraError(null); // Clear any previous errors
       setIsCameraOn(true);
+      
+      console.log("Requesting camera and microphone access...");
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: 640, height: 480 },
         audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 }
       });
+      
+      console.log("✅ Media access granted");
+      console.log("Video tracks:", stream.getVideoTracks().length);
+      console.log("Audio tracks:", stream.getAudioTracks().length);
       
       // Store stream for cleanup
       mediaStreamRef.current = stream;
@@ -355,6 +655,9 @@ const SpeechInsights = () => {
       // IMPORTANT: Record audio-only for filler words (like FillerWords.jsx)
       // Get only the audio track from the stream
       const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        throw new Error("No audio track available. Please check microphone permissions.");
+      }
       const audioStream = new MediaStream(audioTracks);
       
       // Use audio MIME type exactly like FillerWords.jsx
@@ -380,7 +683,7 @@ const SpeechInsights = () => {
         }
       };
 
-      mediaRecorderRef.current.onstop = () => {
+      mediaRecorderRef.current.onstop = async () => {
         const mimeType = mediaRecorderRef.current.mimeType || "audio/webm";
         const audioBlob = new Blob(chunksRef.current, { type: mimeType });
         
@@ -399,11 +702,21 @@ const SpeechInsights = () => {
         
         setRecordedAt(new Date());
         setFillerResult(null); // Reset result like FillerWords.jsx
+        
+        // Automatically trigger analysis after recording stops
+        console.log("Recording stopped, starting automatic analysis...");
+        
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          analyzeAudioFile(audioFile);
+        }, 500);
       };
 
       mediaRecorderRef.current.start(1000); // Use 1000ms like FillerWords.jsx
       setIsRecording(true);
+      isRecordingRef.current = true;
       setIsPaused(false);
+      isPausedRef.current = false;
       setRecordTime(0);
       setCameraError(null);
       
@@ -412,13 +725,29 @@ const SpeechInsights = () => {
       setLiveTop(null);
       setLiveProbs({});
       setLiveSamples(0);
+      setVisibleSeconds(0);
+      setAwaySeconds(0);
+      setEmotionSummary([]);
       emaRef.current = {};
       framesRef.current = [];
+      visibleCountRef.current = 0;
+      awayCountRef.current = 0;
+      lastFaceStatusRef.current = null;
       
       // Reset loudness monitoring state
       setLiveLoudness("Listening...");
       setLoudnessColor("#3498db");
       setWaveform([]);
+      
+      // Reset voice quality metrics
+      setRealtimeVoiceMetrics({
+        jitter_local: 0,
+        shimmer_local: 0,
+        hnr_mean: 0,
+        rhythm_consistency: 0,
+        speech_continuity: 0,
+        speaking_efficiency: 0
+      });
       
       // Reset analysis results
       setFillerResult(null);
@@ -429,12 +758,45 @@ const SpeechInsights = () => {
       liveRef.current = setInterval(sendLiveFrame, 650);
       
       // Start real-time loudness monitoring - use the full stream (has audio)
+      // This also creates audioContextRef which is needed for voice analysis
       await startLoudnessMonitoring(stream);
+      
+      // Wait a bit for audio context to be fully ready before starting voice analysis
+      setTimeout(() => {
+        console.log('🎯 Starting voice quality analysis timer...');
+        // Start real-time voice quality analysis every 5.5 seconds (same as PaceManagement.jsx)
+        // Note: analyzeRealtimeVoice() has its own checks for isRecording/isPaused
+        voiceAnalysisTimerRef.current = setInterval(() => {
+          console.log('⏰ Voice analysis interval triggered');
+          analyzeRealtimeVoice(); // This function checks current recording state
+        }, 5500); // 5.5 seconds interval (same as PaceManagement.jsx)
+      }, 1000); // Wait 1 second for audio context to be ready
     } catch (error) {
-      console.error("Error accessing camera/microphone:", error);
-      setCameraError("Camera/microphone access denied or not available");
+      console.error("❌ Error accessing camera/microphone:", error);
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      
+      let errorMessage = "Unable to access camera/microphone. ";
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage += "Permission denied. Please allow camera and microphone access in your browser settings.";
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage += "No camera or microphone found. Please connect a device and try again.";
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage += "Camera/microphone is already in use by another application. Please close other apps using it.";
+      } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
+        errorMessage += "Camera/microphone doesn't meet requirements. Try a different device.";
+      } else {
+        errorMessage += error.message || "Unknown error occurred.";
+      }
+      
+      setCameraError(errorMessage);
       setIsCameraOn(false);
-      alert("Error accessing camera/microphone. Please check permissions.");
+      setIsRecording(false);
+      isRecordingRef.current = false;
+      
+      // Show detailed alert
+      alert(`🎥 Camera/Microphone Access Error\n\n${errorMessage}\n\nTroubleshooting:\n1. Click the camera icon in your browser's address bar\n2. Allow camera and microphone permissions\n3. Refresh the page and try again\n4. Check if another app is using your camera/mic`);
     }
   };
 
@@ -442,6 +804,7 @@ const SpeechInsights = () => {
     if (mediaRecorderRef.current && isRecording && !isPaused) {
       mediaRecorderRef.current.pause();
       setIsPaused(true);
+      isPausedRef.current = true;
     }
   };
 
@@ -449,6 +812,7 @@ const SpeechInsights = () => {
     if (mediaRecorderRef.current && isRecording && isPaused) {
       mediaRecorderRef.current.resume();
       setIsPaused(false);
+      isPausedRef.current = false;
     }
   };
 
@@ -460,7 +824,23 @@ const SpeechInsights = () => {
         console.error("Error stopping recording:", error);
       }
       setIsRecording(false);
+      isRecordingRef.current = false;
       setIsPaused(false);
+      isPausedRef.current = false;
+      
+      // Finalize emotion summary from frames
+      if (framesRef.current.length > 0) {
+        const sum = {};
+        let n = 0;
+        framesRef.current.forEach(({ probs }) => {
+          EMOTIONS.forEach(e => { sum[e] = (sum[e] || 0) + (probs[e] || 0); });
+          n++;
+        });
+        const avgPct = {};
+        EMOTIONS.forEach(e => { avgPct[e] = n ? +(sum[e] / n).toFixed(1) : 0; });
+        const sorted = Object.entries(avgPct).sort((a, b) => b[1] - a[1]);
+        setEmotionSummary(sorted.slice(0, 3)); // Top 3 emotions
+      }
       
       // Stop media stream - like FillerWords.jsx
       if (mediaStreamRef.current) {
@@ -478,23 +858,42 @@ const SpeechInsights = () => {
         clearInterval(liveRef.current);
         liveRef.current = null;
       }
+      
+      // Stop voice quality analysis
+      if (voiceAnalysisTimerRef.current) {
+        clearInterval(voiceAnalysisTimerRef.current);
+        voiceAnalysisTimerRef.current = null;
+      }
+      
+      // Reset voice metrics
+      setRealtimeVoiceMetrics({
+        jitter_local: 0,
+        shimmer_local: 0,
+        hnr_mean: 0,
+        rhythm_consistency: 0,
+        speech_continuity: 0,
+        speaking_efficiency: 0
+      });
     }
   };
 
-  const analyzeAllComponents = async () => {
-    if (!audioBlob) return alert("No audio recorded");
+  const analyzeAudioFile = async (audioFile) => {
+    if (!audioFile) {
+      console.error("No audio file provided");
+      return;
+    }
     
     setIsAnalyzing(true);
     
     try {
       // Analyze filler words - EXACTLY like FillerWords.jsx uploadAudio function
         const fillerFormData = new FormData();
-      fillerFormData.append("audio", audioBlob);
+      fillerFormData.append("audio", audioFile);
       
         const token = localStorage.getItem("token");
         
       console.log("Uploading audio to:", "http://localhost:3001/api/recording/upload");
-      console.log("Audio blob:", audioBlob);
+      console.log("Audio file:", audioFile);
       console.log("Token:", token ? "Present" : "Missing");
 
       const fillerRes = await axios.post("http://localhost:3001/api/recording/upload", fillerFormData, {
@@ -509,15 +908,53 @@ const SpeechInsights = () => {
 
       // Analyze loudness
       const loudnessFormData = new FormData();
-      loudnessFormData.append('file', audioBlob, 'recording.wav');
+      loudnessFormData.append('file', audioFile, 'recording.wav');
       const loudnessRes = await axios.post('http://localhost:8000/loudness/predict-loudness', loudnessFormData);
       setLoudnessResult(loudnessRes.data);
 
-      // Analyze pace (mock data for now)
+      // Analyze pace - like PaceManagement.jsx
+      const paceFormData = new FormData();
+      paceFormData.append("file", audioFile, "speech.wav");
+
+      // Call rate analysis endpoint
+      const rateResponse = await fetch("http://localhost:8000/rate-analysis/", {
+        method: "POST",
+        body: paceFormData,
+      });
+
+      const rateData = await rateResponse.json();
+      console.log("Rate analysis response:", rateData);
+
+      // Get backend label and frontend calculated label
+      const backendLabel = rateData.modelPrediction || rateData.prediction;
+      const frontendCalculatedLabel = getWpmLabel(rateData.wpm || 0);
+
+      // Validate backend prediction
+      const isValidBackendPrediction = (label, wpm) => {
+        if (!label || !wpm) return false;
+        if (label === "Slow" && wpm >= 100) return false;
+        if (label === "Ideal" && (wpm < 100 || wpm > 150)) return false;
+        if (label === "Fast" && wpm <= 150) return false;
+        return true;
+      };
+
+      // Use backend prediction if valid, otherwise use frontend
+      const finalLabel = (backendLabel && isValidBackendPrediction(backendLabel, rateData.wpm)) 
+        ? backendLabel 
+        : frontendCalculatedLabel;
+
       setPaceResult({
-        wpm: Math.floor(Math.random() * 40) + 120,
-        prediction: "Good Pace",
-        consistencyScore: Math.random() * 100
+        wpm: rateData.wpm || 0,
+        prediction: finalLabel,
+        consistencyScore: rateData.consistencyScore || 0,
+        wordCount: rateData.wordCount || 0,
+        duration: rateData.duration || 0
+      });
+
+      console.log("Pace result:", {
+        wpm: rateData.wpm,
+        prediction: finalLabel,
+        consistencyScore: rateData.consistencyScore
       });
 
     } catch (error) {
@@ -539,6 +976,15 @@ const SpeechInsights = () => {
       return 'text-red-400';
     }
     if (type === 'pace') {
+      // For pace, score can be the prediction label or consistency score
+      if (typeof score === 'string') {
+        return score === 'Ideal' ? 'text-green-400' : 'text-yellow-400';
+      }
+      if (score >= 80) return 'text-green-400';
+      if (score >= 60) return 'text-yellow-400';
+      return 'text-red-400';
+    }
+    if (type === 'engagement') {
       if (score >= 80) return 'text-green-400';
       if (score >= 60) return 'text-yellow-400';
       return 'text-red-400';
@@ -556,6 +1002,18 @@ const SpeechInsights = () => {
       return '✗';
     }
     if (type === 'pace') {
+      // For pace, score can be the prediction label or consistency score
+      if (typeof score === 'string') {
+        // If score is a label (Slow/Ideal/Fast)
+        return score === 'Ideal' ? '✓' : '⚠';
+      }
+      // If score is consistency percentage
+      if (score >= 80) return '✓';
+      if (score >= 60) return '⚠';
+      return '✗';
+    }
+    if (type === 'engagement') {
+      // Engagement percentage
       if (score >= 80) return '✓';
       if (score >= 60) return '⚠';
       return '✗';
@@ -631,10 +1089,19 @@ const SpeechInsights = () => {
                     {formatTime(recordTime)}
                 </div>
               )}
-            </div>
+              </div>
 
               {/* Recording Controls Below Webcam */}
               <div className="space-y-2">
+                {/* Info Badge */}
+                {isRecording && !isAnalyzing && (
+                  <div className="text-center">
+                    <span className="text-xs text-green-300 bg-green-500/20 px-3 py-1 rounded-full border border-green-400/50">
+                      💡 Click Stop to auto-analyze
+                    </span>
+                </div>
+              )}
+                
                 {/* Control Buttons */}
                 <div className="flex justify-center space-x-3">
                   
@@ -659,36 +1126,58 @@ const SpeechInsights = () => {
                   
                 <button
                   onClick={stopRecording}
-                  disabled={!isRecording}
+                    disabled={!isRecording || isAnalyzing}
                     className="p-3 bg-red-600 rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700 transition-all transform hover:scale-105"
-                    title="Stop Recording"
-                >
+                    title={isAnalyzing ? "Analyzing..." : "Stop Recording & Analyze"}
+                  >
+                    {isAnalyzing ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      >
+                        <FaClock className="text-black text-xl" />
+                      </motion.div>
+                    ) : (
                   <FaStop className="text-black text-xl" />
+                    )}
                 </button>
               </div>
 
                 {/* Status Display */}
                 <div className="text-center">
                   <p className="text-white/90 text-sm">
-                    {isRecording 
+                    {isAnalyzing 
+                      ? '⏳ Analyzing Speech...' 
+                      : isRecording 
                       ? (isPaused ? '⏸️ Recording Paused' : '🎥 Recording in Progress') 
-                      : (audioBlob ? '✅ Recording Complete' : '⚪ Ready to Record')}
+                      : (audioBlob ? '✅ Analysis Complete' : '⚪ Ready to Record')}
                 </p>
               </div>
 
                 {/* Camera Error */}
                 {cameraError && (
-                  <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
-                    <p className="text-red-300 text-sm text-center">{cameraError}</p>
+                  <div className="p-4 bg-red-500/20 border-2 border-red-500/50 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <FaExclamationTriangle className="text-red-300 text-xl flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-red-300 text-sm font-semibold mb-2">{cameraError}</p>
+                        <div className="text-red-200 text-xs space-y-1">
+                          <p>✓ Click the camera/lock icon in your browser's address bar</p>
+                          <p>✓ Select "Allow" for camera and microphone</p>
+                          <p>✓ Refresh the page and try again</p>
+                          <p>✓ Make sure no other app is using your camera/mic</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 {/* Video/Audio Playback */}
                 {/* {audioURL && (
                   <div className="space-y-2">
-                    <audio controls className="w-full rounded-lg">
-                      <source src={audioURL} type="audio/webm" />
-                    </audio>
+                  <audio controls className="w-full rounded-lg">
+                    <source src={audioURL} type="audio/webm" />
+                  </audio>
                   </div>
                 )} */}
               </div>
@@ -766,29 +1255,18 @@ const SpeechInsights = () => {
                 </div>
               )}
 
-              {/* Analyze Button */}
-              <button
-                onClick={analyzeAllComponents}
-                disabled={!audioBlob || isAnalyzing}
-                className="w-full mt-3 bg-[#00ccff] text-[#003b46] font-bold py-2.5 px-4 rounded-lg hover:bg-[#00a8cc] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm flex-shrink-0"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    >
-                      ⏳
-                    </motion.div>
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <FaChartBar />
-                    Analyze All Components
-                  </>
-                )}
-              </button>
+              {/* Analysis Status */}
+              {isAnalyzing && (
+                <div className="w-full mt-3 bg-blue-500/20 border border-blue-400/50 rounded-lg p-3 flex items-center justify-center gap-2 text-sm">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  >
+                    ⏳
+                  </motion.div>
+                  <span className="text-blue-200">Analyzing speech components...</span>
+                </div>
+              )}
             </div>
 
             {/* Real-time Loudness Monitoring Section */}
@@ -821,19 +1299,19 @@ const SpeechInsights = () => {
               {/* Loudness Status */}
               <div className="grid grid-cols-3 gap-2">
                 <div className={`p-2 rounded-lg text-center ${
-                  liveLoudness === 'Acceptable' ? 'bg-green-500/30 border-2 border-green-400' : 'bg-green-500/10 border border-green-400/30'
+                  liveLoudness === 'Acceptable' ? 'bg-green-500/50 border-2 border-green-400' : 'bg-green-500/10 border border-green-400/30'
                 }`}>
                   <div className="text-xs text-white/80">Optimal</div>
                   <div className="text-lg">✓</div>
                 </div>
                 <div className={`p-2 rounded-lg text-center ${
-                  liveLoudness === 'Low / Silent' ? 'bg-red-500/30 border-2 border-red-400' : 'bg-red-500/10 border border-red-400/30'
+                  liveLoudness === 'Low / Silent' ? 'bg-red-500/50 border-2 border-red-400' : 'bg-red-500/10 border border-red-400/30'
                 }`}>
                   <div className="text-xs text-white/80">Too Quiet</div>
                   <div className="text-lg">↓</div>
                 </div>
                 <div className={`p-2 rounded-lg text-center ${
-                  liveLoudness === 'Too Loud' ? 'bg-yellow-500/30 border-2 border-yellow-400' : 'bg-yellow-500/10 border border-yellow-400/30'
+                  liveLoudness === 'Too Loud' ? 'bg-yellow-500/50 border-2 border-yellow-400' : 'bg-yellow-500/10 border border-yellow-400/30'
                 }`}>
                   <div className="text-xs text-white/80">Too Loud</div>
                   <div className="text-lg">↑</div>
@@ -851,6 +1329,147 @@ const SpeechInsights = () => {
                 </div>
               )}
             </div>
+
+            {/* Real-time Voice Quality Section */}
+            <div className="bg-gradient-to-b from-[#00171f] to-[#003b46] rounded-2xl p-4 shadow-xl flex-shrink-0">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[#00ccff] text-base font-semibold flex items-center gap-2">
+                  {isAnalyzingVoice ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    >
+                      <FaCheckCircle className="text-[#00ccff]" />
+                    </motion.div>
+                  ) : (
+                    <FaCheckCircle className="text-[#00ccff]" />
+                  )}
+                  Real-time Voice Quality
+                </h3>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${isRecording && !isPaused ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
+                  {isAnalyzingVoice && <span className="text-xs text-blue-300">Analyzing...</span>}
+                </div>
+              </div>
+
+              {/* Voice Quality Metrics - Compact Grid */}
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {/* Voice Stability */}
+                <div className="bg-black/30 rounded-lg p-2 text-center">
+                  <div className="text-xs text-white/70 mb-1">Stability</div>
+                  <div className={`text-2xl font-bold ${
+                    realtimeVoiceMetrics.jitter_local < 0.02 ? 'text-green-300' :
+                    realtimeVoiceMetrics.jitter_local < 0.05 ? 'text-yellow-300' : 'text-red-300'
+                  }`}>
+                    {realtimeVoiceMetrics.jitter_local < 0.02 ? '✓' :
+                     realtimeVoiceMetrics.jitter_local < 0.05 ? '⚠' : '✗'}
+                  </div>
+                  <div className="text-xs text-white/50">{(realtimeVoiceMetrics.jitter_local * 100).toFixed(1)}</div>
+                </div>
+
+                {/* Voice Clarity */}
+                <div className="bg-black/30 rounded-lg p-2 text-center">
+                  <div className="text-xs text-white/70 mb-1">Clarity</div>
+                  <div className={`text-2xl font-bold ${
+                    realtimeVoiceMetrics.shimmer_local < 0.1 ? 'text-green-300' :
+                    realtimeVoiceMetrics.shimmer_local < 0.2 ? 'text-yellow-300' : 'text-red-300'
+                  }`}>
+                    {realtimeVoiceMetrics.shimmer_local < 0.1 ? '✓' :
+                     realtimeVoiceMetrics.shimmer_local < 0.2 ? '⚠' : '✗'}
+                  </div>
+                  <div className="text-xs text-white/50">{(realtimeVoiceMetrics.shimmer_local * 100).toFixed(1)}</div>
+                </div>
+
+                {/* Voice Quality (HNR) */}
+                <div className="bg-black/30 rounded-lg p-2 text-center">
+                  <div className="text-xs text-white/70 mb-1">Quality</div>
+                  <div className={`text-2xl font-bold ${
+                    realtimeVoiceMetrics.hnr_mean > 20 ? 'text-green-300' :
+                    realtimeVoiceMetrics.hnr_mean > 10 ? 'text-yellow-300' : 'text-red-300'
+                  }`}>
+                    {realtimeVoiceMetrics.hnr_mean > 20 ? '✓' :
+                     realtimeVoiceMetrics.hnr_mean > 10 ? '⚠' : '✗'}
+                  </div>
+                  <div className="text-xs text-white/50">{realtimeVoiceMetrics.hnr_mean.toFixed(1)}dB</div>
+                </div>
+              </div>
+
+              {/* Rhythm & Flow Progress Bars */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/80 w-20">Rhythm</span>
+                  <div className="flex-1 h-2.5 rounded-full bg-[#0b4952] overflow-hidden border border-white/10">
+                    <motion.div
+                      className="h-2.5 rounded-full bg-gradient-to-r from-blue-400 to-blue-600"
+                      key={`rhythm-${realtimeVoiceMetrics.rhythm_consistency}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(Math.max((realtimeVoiceMetrics.rhythm_consistency * 100), 2), 100)}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                    />
+                  </div>
+                  <span className="text-xs text-white font-semibold w-12 text-right">{(realtimeVoiceMetrics.rhythm_consistency * 100).toFixed(0)}%</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/80 w-20">Flow</span>
+                  <div className="flex-1 h-2.5 rounded-full bg-[#0b4952] overflow-hidden border border-white/10">
+                    <motion.div
+                      className="h-2.5 rounded-full bg-gradient-to-r from-green-400 to-green-600"
+                      key={`flow-${realtimeVoiceMetrics.speech_continuity}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(Math.max((realtimeVoiceMetrics.speech_continuity * 100), 2), 100)}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                    />
+                  </div>
+                  <span className="text-xs text-white font-semibold w-12 text-right">{(realtimeVoiceMetrics.speech_continuity * 100).toFixed(0)}%</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/80 w-20">Efficiency</span>
+                  <div className="flex-1 h-2.5 rounded-full bg-[#0b4952] overflow-hidden border border-white/10">
+                    <motion.div
+                      className="h-2.5 rounded-full bg-gradient-to-r from-purple-400 to-purple-600"
+                      key={`efficiency-${realtimeVoiceMetrics.speaking_efficiency}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(Math.max((realtimeVoiceMetrics.speaking_efficiency * 100), 2), 100)}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                    />
+                  </div>
+                  <span className="text-xs text-white font-semibold w-12 text-right">{(realtimeVoiceMetrics.speaking_efficiency * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+
+              {/* Status Message */}
+              <div className="mt-3 text-center">
+                <p className="text-xs text-white/60">
+                  {isAnalyzingVoice 
+                    ? '⏳ Analyzing voice data (5s)...' 
+                    : isRecording && !isPaused 
+                    ? '🔄 Next analysis in 5.5s...' 
+                    : 'Start recording to monitor voice quality'}
+                </p>
+                {isRecording && !isPaused && (
+                  <p className="text-xs text-blue-300 mt-1">
+                    Updates every 5.5 seconds • Check console for details
+                  </p>
+                )}
+              </div>
+
+              {/* Debug Panel - Remove after testing */}
+              {(isRecording || realtimeVoiceMetrics.jitter_local > 0) && (
+                <div className="mt-3 p-2 bg-black/40 rounded-lg border border-cyan-400/30">
+                  <div className="text-xs text-cyan-300 font-semibold mb-1">🔍 Debug Values:</div>
+                  <div className="grid grid-cols-2 gap-1 text-xs text-white/70">
+                    <div>Jitter: {realtimeVoiceMetrics.jitter_local.toFixed(4)}</div>
+                    <div>Shimmer: {realtimeVoiceMetrics.shimmer_local.toFixed(4)}</div>
+                    <div>HNR: {realtimeVoiceMetrics.hnr_mean.toFixed(2)}</div>
+                    <div>Rhythm: {(realtimeVoiceMetrics.rhythm_consistency * 100).toFixed(1)}%</div>
+                    <div>Flow: {(realtimeVoiceMetrics.speech_continuity * 100).toFixed(1)}%</div>
+                    <div>Efficiency: {(realtimeVoiceMetrics.speaking_efficiency * 100).toFixed(1)}%</div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right Panel - All Components Display */}
@@ -860,7 +1479,7 @@ const SpeechInsights = () => {
               <div id="speech-insights-report">
 
                 {/* Overall Score Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                   <div className="bg-gradient-to-br from-blue-500/30 to-cyan-500/30 rounded-xl p-4 border-2 border-blue-400/60 text-center">
                     <div className="text-3xl font-bold text-blue-300 mb-2">
                       {loudnessResult ? getScoreIcon(loudnessResult.category, 'loudness') : '?'}
@@ -882,12 +1501,39 @@ const SpeechInsights = () => {
                   </div>
 
                   <div className="bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-xl p-4 border-2 border-purple-400/60 text-center">
-                    <div className="text-3xl font-bold text-purple-300 mb-2">
-                      {paceResult ? getScoreIcon(paceResult.consistencyScore, 'pace') : '?'}
+                    <div className={`text-3xl font-bold mb-2 ${
+                      paceResult ? getScoreColor(paceResult.prediction || getWpmLabel(paceResult.wpm), 'pace') : 'text-purple-300'
+                    }`}>
+                      {paceResult ? getScoreIcon(paceResult.prediction || getWpmLabel(paceResult.wpm), 'pace') : '?'}
                     </div>
                     <div className="text-white font-semibold">Pace</div>
                     <div className="text-white/70 text-sm">
-                      {paceResult ? `${paceResult.wpm} WPM` : 'Not Analyzed'}
+                      {paceResult ? `${paceResult.prediction || getWpmLabel(paceResult.wpm)} - ${paceResult.wpm.toFixed(0)} WPM` : 'Not Analyzed'}
+                    </div>
+                  </div>
+
+                  {/* Face Analysis - Combined Engagement & Top Emotion */}
+                  <div className="bg-gradient-to-br from-pink-500/30 to-rose-500/30 rounded-xl p-4 border-2 border-pink-400/60 text-center">
+                    <div className={`text-3xl font-bold mb-2 ${
+                      (visibleSeconds > 0 || awaySeconds > 0)
+                        ? getScoreColor(Math.round((visibleSeconds / (visibleSeconds + awaySeconds || 1)) * 100), 'engagement')
+                        : emotionSummary[0]?.[0]
+                        ? 'text-green-400'
+                        : 'text-pink-300'
+                    }`}>
+                      {(visibleSeconds > 0 || awaySeconds > 0) 
+                        ? getScoreIcon(Math.round((visibleSeconds / (visibleSeconds + awaySeconds || 1)) * 100), 'engagement')
+                        : emotionSummary[0]?.[0] 
+                        ? '✓' 
+                        : '?'}
+                    </div>
+                    <div className="text-white font-semibold">Face Analysis</div>
+                    <div className="text-white/70 text-sm">
+                      {emotionSummary[0] 
+                        ? `${emotionSummary[0][0]} ${emotionSummary[0][1]}%` 
+                        : visibleSeconds > 0 || awaySeconds > 0
+                        ? `${Math.round((visibleSeconds / (visibleSeconds + awaySeconds || 1)) * 100)}% Engaged`
+                        : 'Not Detected'}
                     </div>
                   </div>
                 </div>
@@ -1050,38 +1696,239 @@ const SpeechInsights = () => {
                     )}
                   </div>
 
-                  {/* Pace Management Component */}
+                  {/* Pace Management Component - Enhanced with Gauge */}
                   <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-xl p-6 border-2 border-purple-400/30">
                     <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
-                      <FaBrain className="text-purple-400" />
+                      <FaMicrophone className="text-purple-400" />
                       Pace Management
                     </h3>
                     {paceResult ? (
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-white/80">Speaking Rate:</span>
-                          <span className={`font-semibold ${getScoreColor(paceResult.consistencyScore, 'pace')}`}>
-                            {paceResult.wpm} WPM
+                      <div className="space-y-4">
+                        {/* Gauge and Rate Label in One Line */}
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* WPM Gauge */}
+                          <div className="bg-black/30 rounded-xl p-3">
+                            <h4 className="text-white text-xs font-semibold mb-1 text-center">Rate Meter</h4>
+                            <GaugeChart
+                              id="wpm-gauge-speech-insights"
+                              nrOfLevels={30}
+                              colors={["#ff0000", "#ff9900", "#00cc00"]}
+                              arcWidth={0.3}
+                              percent={Math.min(Math.max(paceResult.wpm, 0) / 200, 1)}
+                              textColor="#fff"
+                              needleColor="#fff"
+                              needleBaseColor="#fff"
+                              animate={false}
+                              style={{
+                                width: "100%",
+                                height: "100px"
+                              }}
+                            />
+                            <div className="text-center text-xs text-white/70">
+                              {paceResult.wpm.toFixed(0)} WPM
+                            </div>
+                          </div>
+
+                          {/* Rate Label Display */}
+                          <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-400/50 rounded-xl p-3 flex flex-col justify-center items-center">
+                            <div className="text-xs text-white/70 mb-1">Category</div>
+                            <div className="flex items-center justify-center gap-1 mb-1">
+                              <span className="text-2xl">{getWpmEmoji(paceResult.prediction || getWpmLabel(paceResult.wpm))}</span>
+                              <span className={`text-2xl font-bold ${
+                                (paceResult.prediction || getWpmLabel(paceResult.wpm)) === 'Ideal' ? 'text-green-300' :
+                                (paceResult.prediction || getWpmLabel(paceResult.wpm)) === 'Slow' ? 'text-yellow-300' :
+                                'text-orange-300'
+                              }`}>
+                                {paceResult.prediction || getWpmLabel(paceResult.wpm)}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-white/80">Consistency:</span>
+                            <div className="text-xs text-white/70">
+                              {paceResult.wordCount > 0 && `${paceResult.wordCount} words`}
+                            </div>
+                            <div className="text-xs text-white/60">
+                              {paceResult.duration > 0 && `${paceResult.duration.toFixed(1)}s`}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Consistency Score */}
+                        <div className="bg-black/30 rounded-xl p-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-white/80 text-sm">Consistency:</span>
                           <span className={`font-semibold ${getScoreColor(paceResult.consistencyScore, 'pace')}`}>
                             {paceResult.consistencyScore.toFixed(1)}%
                           </span>
                         </div>
                         <div className="w-full bg-white/20 rounded-full h-3">
-                          <div 
+                            <motion.div 
                             className={`h-3 rounded-full transition-all duration-500 ${
                               paceResult.consistencyScore >= 80 ? 'bg-green-400' : 
                               paceResult.consistencyScore >= 60 ? 'bg-yellow-400' : 'bg-red-400'
                             }`}
-                            style={{ width: `${Math.min(paceResult.consistencyScore, 100)}%` }}
-                          ></div>
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min(paceResult.consistencyScore, 100)}%` }}
+                              transition={{ duration: 1, ease: "easeOut" }}
+                            ></motion.div>
+                        </div>
+                        </div>
+
+                        {/* Guidelines */}
+                        <div className="flex gap-2">
+                          <div className={`flex-1 rounded-lg p-2 text-center ${
+                            getWpmLabel(paceResult.wpm) === 'Slow' 
+                              ? 'bg-yellow-500/30 border-2 border-yellow-400' 
+                              : 'bg-yellow-500/10 border border-yellow-400/30'
+                          }`}>
+                            <div className="text-lg">🟡</div>
+                            <div className="text-yellow-300 font-bold text-xs">Slow</div>
+                            <div className="text-white/70 text-xs">&lt;100</div>
+                          </div>
+                          <div className={`flex-1 rounded-lg p-2 text-center ${
+                            getWpmLabel(paceResult.wpm) === 'Ideal' 
+                              ? 'bg-green-500/30 border-2 border-green-400' 
+                              : 'bg-green-500/10 border border-green-400/30'
+                          }`}>
+                            <div className="text-lg">🟢</div>
+                            <div className="text-green-300 font-bold text-xs">Ideal</div>
+                            <div className="text-white/70 text-xs">100-150</div>
+                          </div>
+                          <div className={`flex-1 rounded-lg p-2 text-center ${
+                            getWpmLabel(paceResult.wpm) === 'Fast' 
+                              ? 'bg-orange-500/30 border-2 border-orange-400' 
+                              : 'bg-orange-500/10 border border-orange-400/30'
+                          }`}>
+                            <div className="text-lg">🟠</div>
+                            <div className="text-orange-300 font-bold text-xs">Fast</div>
+                            <div className="text-white/70 text-xs">&gt;150</div>
+                          </div>
+                        </div>
+
+                        {/* Feedback */}
+                        <div className="bg-blue-500/20 border border-blue-400/50 rounded-lg p-3">
+                          <p className="text-xs text-blue-200">
+                            💡 {getWpmFeedback(paceResult.wpm, paceResult.prediction || getWpmLabel(paceResult.wpm))}
+                          </p>
+                        </div>
+                        
+                        {/* Additional Info */}
+                        {paceResult.wordCount > 0 && paceResult.duration > 0 && (
+                          <div className="bg-purple-500/10 border border-purple-400/30 rounded-lg p-2">
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="text-center">
+                                <div className="text-white/60">Words</div>
+                                <div className="text-white font-semibold">{paceResult.wordCount}</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-white/60">Duration</div>
+                                <div className="text-white font-semibold">{paceResult.duration.toFixed(1)}s</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <motion.div
+                          className="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg"
+                          animate={{ 
+                            scale: [1, 1.1, 1],
+                            rotate: [0, 5, -5, 0]
+                          }}
+                          transition={{ duration: 3, repeat: Infinity }}
+                        >
+                          <FaMicrophone className="text-white text-2xl" />
+                        </motion.div>
+                        <p className="text-white/60 text-sm">No pace analysis yet</p>
+                        <p className="text-white/40 text-xs mt-1">Record and analyze to see results</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Emotion & Engagement Analysis Component */}
+                  <div className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-xl p-6 border-2 border-pink-400/30">
+                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                      <FaSmile className="text-pink-400" />
+                      Emotion & Engagement Analysis
+                    </h3>
+                    
+                    {(visibleSeconds > 0 || awaySeconds > 0 || emotionSummary.length > 0) ? (
+                      <div className="space-y-4">
+                        {/* Engagement Metrics */}
+                        {(visibleSeconds > 0 || awaySeconds > 0) && (
+                          <div className="bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border-2 border-emerald-400/50 rounded-xl p-4 text-center">
+                            <div className="text-sm text-white/70 mb-1">Engagement Score</div>
+                            <div className="text-4xl font-bold text-emerald-300 mb-1">
+                              {Math.round((visibleSeconds / (visibleSeconds + awaySeconds || 1)) * 100)}%
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 mt-3">
+                              <div>
+                                <div className="text-xs text-white/60">Visible</div>
+                                <div className="text-lg font-semibold text-green-300">{visibleSeconds}s</div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-white/60">Away</div>
+                                <div className="text-lg font-semibold text-red-300">{awaySeconds}s</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Top 3 Emotions */}
+                        {emotionSummary.length > 0 && (
+                          <div className="space-y-3">
+                            <h4 className="text-sm font-semibold text-white/90">Top 3 Emotions</h4>
+                            {emotionSummary.map(([emotion, percentage], index) => (
+                              <div key={emotion} className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                                  index === 0 ? 'bg-yellow-500 text-black' :
+                                  index === 1 ? 'bg-gray-400 text-black' :
+                                  'bg-orange-600 text-white'
+                                }`}>
+                                  {index + 1}
+                                </div>
+                                <span className="flex-1 text-white text-sm">{emotion}</span>
+                                <div className="flex-1 h-3 rounded-full bg-[#0b4952] overflow-hidden">
+                                  <motion.div
+                                    className="h-3 rounded-full bg-gradient-to-r from-pink-400 to-rose-500"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${percentage}%` }}
+                                    transition={{ duration: 0.8, delay: index * 0.1 }}
+                                  />
+                                </div>
+                                <span className="w-12 text-right text-sm text-white font-semibold">{percentage}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Tips */}
+                        <div className="bg-blue-500/20 border border-blue-400/50 rounded-lg p-3">
+                          <p className="text-xs text-blue-200">
+                            💡 {visibleSeconds > 0 && awaySeconds > 0 
+                              ? (visibleSeconds / (visibleSeconds + awaySeconds) >= 0.8 
+                                ? 'Excellent eye contact! Keep maintaining face visibility.' 
+                                : 'Try to keep your face visible to the camera for better engagement.')
+                              : emotionSummary.length > 0
+                              ? `Your dominant emotion was ${emotionSummary[0][0]}. Ensure it aligns with your message.`
+                              : 'Face tracking provides engagement metrics during recording.'}
+                          </p>
                         </div>
                       </div>
                     ) : (
-                      <p className="text-white/60 text-center py-4">No pace analysis available</p>
+                      <div className="text-center py-8">
+                        <motion.div
+                          className="w-16 h-16 bg-gradient-to-br from-pink-400 to-rose-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg"
+                          animate={{ 
+                            scale: [1, 1.1, 1],
+                            rotate: [0, 5, -5, 0]
+                          }}
+                          transition={{ duration: 3, repeat: Infinity }}
+                        >
+                          <FaSmile className="text-white text-2xl" />
+                        </motion.div>
+                        <p className="text-white/60 text-sm">No emotion analysis yet</p>
+                        <p className="text-white/40 text-xs mt-1">Record with camera to track emotions and engagement</p>
+                      </div>
                     )}
                   </div>
 
@@ -1100,13 +1947,19 @@ const SpeechInsights = () => {
                   </div>
                 )}
 
-                {/* Empty State */}
-                {!loudnessResult && !fillerResult && !paceResult && (
+                {/* Analyzing State */}
+                {isAnalyzing && !loudnessResult && !fillerResult && !paceResult && (
                   <div className="text-center py-12">
-                    <div className="text-6xl mb-4">🎤</div>
-                    <h3 className="text-xl font-semibold text-white mb-2">Ready to Analyze</h3>
+                    <motion.div
+                      className="text-6xl mb-4"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    >
+                      ⏳
+                    </motion.div>
+                    <h3 className="text-xl font-semibold text-white mb-2">Analyzing Your Speech</h3>
                     <p className="text-white/70">
-                      Record your speech and click "Analyze All Components" to get comprehensive insights.
+                      Please wait while we analyze loudness, filler words, and pace...
                     </p>
                   </div>
                 )}
