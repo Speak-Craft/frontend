@@ -28,6 +28,8 @@ const Dashboard = () => {
   const [loudnessScores, setLoudnessScores] = useState([]);
   const [loudnessExercises, setLoudnessExercises] = useState([]);
   const [paceSessions, setPaceSessions] = useState([]);
+  const [emotionActivities, setEmotionActivities] = useState([]);
+  const [emotionStats, setEmotionStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [scoreChartView, setScoreChartView] = useState('bar'); // 'bar', 'line', 'area', 'pie'
 
@@ -66,12 +68,21 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPaceSessions(paceRes.data.sessions || []);
+
+      // Fetch emotion analysis activities
+      const emotionRes = await axios.get("http://localhost:3001/api/emotion/activity/history?limit=20", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setEmotionActivities(emotionRes.data.activities || []);
+      setEmotionStats(emotionRes.data.stats || null);
       
       // Debug logging
       console.log("Filler History:", fillerRes.data.history);
       console.log("Loudness Scores:", scoresRes.data);
       console.log("Loudness Exercises:", exercisesRes.data.exercises);
       console.log("Pace Sessions:", paceRes.data.sessions);
+      console.log("Emotion Activities:", emotionRes.data.activities);
+      console.log("Emotion Stats:", emotionRes.data.stats);
     } catch (err) {
       console.error("Failed to fetch progress data", err);
     } finally {
@@ -135,6 +146,18 @@ const Dashboard = () => {
     excessivePauses: session.excessivePauses || 0,
     finalScore: session.finalScore || 0,
     duration: session.duration || 0,
+  }));
+
+  // Prepare emotion analysis chart data
+  const emotionChartData = emotionActivities.map((activity, index) => ({
+    id: index,
+    date: new Date(activity.createdAt).toLocaleDateString(),
+    finalScore: activity.finalScore || 0,
+    alignmentScore: activity.alignmentScore || 0,
+    engagementScore: activity.engagementScore || 0,
+    consistencyScore: activity.consistencyScore || 0,
+    completed: activity.completed,
+    activityType: activity.activityType,
   }));
 
   // Calculate overall performance metrics
@@ -1195,6 +1218,143 @@ const Dashboard = () => {
                       <div className="flex flex-col items-center justify-center h-full text-center">
                         <FaClock className="text-4xl text-gray-400 mb-4" />
                         <p className="text-gray-300 text-lg mb-2">No pause data yet</p>
+                        <p className="text-gray-400 text-sm">Start practicing to see your performance!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Emotion Analysis Performance Chart */}
+            <div className="flex-1 flex flex-col">
+              <motion.div
+                className="w-full h-full bg-gradient-to-br from-[#00171f] via-[#003b46] to-[#07575b] rounded-2xl p-6 border-2 border-[#ec4899]/60 shadow-2xl backdrop-blur-sm relative overflow-hidden flex flex-col"
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 1.4 }}
+              >
+                {/* Glowing Border Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#ec4899]/20 via-transparent to-[#ec4899]/20 rounded-2xl animate-pulse"></div>
+                
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="text-center mb-6">
+                    <motion.div
+                      className="w-16 h-16 bg-gradient-to-br from-[#ec4899] to-[#db2777] rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl"
+                      animate={{ rotate: [0, 5, -5, 0] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                    >
+                      <FaHeart className="text-white text-2xl" />
+                    </motion.div>
+                    
+                    <h3 className="text-[#ec4899] font-bold text-xl lg:text-2xl mb-2 drop-shadow-lg">
+                      🎭 Emotion Analysis
+                    </h3>
+                    
+                    <p className="text-white/80 text-sm">
+                      Track your emotional expression and alignment
+                    </p>
+                  </div>
+
+                  {/* Stats Cards */}
+                  {emotionStats && (
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="text-center p-3 bg-white/10 rounded-lg">
+                        <div className="text-white text-lg font-bold">{emotionStats.averageScore}%</div>
+                        <div className="text-gray-300 text-xs">Avg Score</div>
+                      </div>
+                      <div className="text-center p-3 bg-white/10 rounded-lg">
+                        <div className="text-white text-lg font-bold">{emotionStats.bestScore}%</div>
+                        <div className="text-gray-300 text-xs">Best Score</div>
+                      </div>
+                      <div className="text-center p-3 bg-white/10 rounded-lg">
+                        <div className="text-white text-lg font-bold">{emotionStats.completedActivities}</div>
+                        <div className="text-gray-300 text-xs">Completed</div>
+                      </div>
+                      <div className="text-center p-3 bg-white/10 rounded-lg">
+                        <div className="text-white text-lg font-bold">{emotionStats.totalBadges}</div>
+                        <div className="text-gray-300 text-xs">Badges</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chart Section */}
+                  <div className="flex-1 min-h-0 h-64">
+                    {loading ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ec4899]"></div>
+                      </div>
+                    ) : emotionChartData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={emotionChartData}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis 
+                            dataKey="date" 
+                            stroke="#9CA3AF"
+                            fontSize={12}
+                          />
+                          <YAxis 
+                            stroke="#9CA3AF"
+                            fontSize={12}
+                            domain={[0, 100]}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: '#1f2937',
+                              border: '1px solid #374151',
+                              borderRadius: '8px',
+                              color: '#fff'
+                            }}
+                            formatter={(value, name) => {
+                              if (name === "finalScore") return [value, "Final Score %"];
+                              if (name === "alignmentScore") return [value, "Alignment %"];
+                              if (name === "engagementScore") return [value, "Engagement %"];
+                              if (name === "consistencyScore") return [value, "Consistency %"];
+                              return [value, name];
+                            }}
+                            labelFormatter={(label) => `Date: ${label}`}
+                          />
+                          <Legend 
+                            verticalAlign="top" 
+                            height={36}
+                            wrapperStyle={{ color: '#fff' }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="finalScore"
+                            name="Final Score %"
+                            stroke="#ec4899"
+                            strokeWidth={3}
+                            dot={{ r: 5, fill: '#ec4899' }}
+                            activeDot={{ r: 7, fill: '#db2777' }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="alignmentScore"
+                            name="Alignment %"
+                            stroke="#10b981"
+                            strokeWidth={2}
+                            dot={{ r: 4, fill: '#10b981' }}
+                            strokeDasharray="5 5"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="consistencyScore"
+                            name="Consistency %"
+                            stroke="#f59e0b"
+                            strokeWidth={2}
+                            dot={{ r: 4, fill: '#f59e0b' }}
+                            strokeDasharray="5 5"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <FaHeart className="text-4xl text-gray-400 mb-4" />
+                        <p className="text-gray-300 text-lg mb-2">No emotion data yet</p>
                         <p className="text-gray-400 text-sm">Start practicing to see your performance!</p>
                       </div>
                     )}
