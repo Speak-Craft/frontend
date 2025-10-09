@@ -3591,7 +3591,7 @@ const PaceManagement = () => {
               animate={{ opacity: 1, x: 0, y: 0 }}
               transition={{ duration: 0.8, delay: 0.5 }}
               whileHover={{ scale: 1.02 }}
-              style={{ position: 'sticky', bottom: '20px' }}
+              style={{  bottom: '20px' }}
             >
               {/* Floating Particles Background */}
               <div className="absolute inset-0 pointer-events-none z-10">
