@@ -21,6 +21,7 @@ import FillerWordActivity from "./components/FillerWordActivity";
 import QuestionGeneration from "./components/QuestionGeneration";
 import SpeechInsights from "./components/SpeechInsights";
 import EmotionAnalysisHome from "./components/EmotionAnalysisHome";
+import EmotionAnalysisActivity from "./components/EmotionAnalysisActivity";
 
 const App = () => {
   return (
@@ -63,6 +64,7 @@ const App = () => {
                     <Route path="filler-words-activities" element={<FillerWordActivity />} />
                     <Route path="question-generation" element={<QuestionGeneration />} />
                     <Route path="speech-insights" element={<SpeechInsights />} />
+                    <Route path="emotion-analysis-activities" element={<EmotionAnalysisActivity />} />
                   </Routes>
                 </div>
               </div>
