@@ -69,6 +69,7 @@ const SpeechInsights = () => {
     loudness: false,
     pace: false
   });
+  const [showPlaybackModal, setShowPlaybackModal] = useState(false);
   const [audioDuration, setAudioDuration] = useState(null);
   const [recordedAt, setRecordedAt] = useState(null);
   
@@ -1106,6 +1107,9 @@ const SpeechInsights = () => {
       });
 
       console.log("✅ All results processed successfully!");
+      
+      // Show playback modal after successful analysis
+      setShowPlaybackModal(true);
 
     } catch (error) {
       console.error("❌ Analysis failed:", error);
@@ -2601,8 +2605,8 @@ const SpeechInsights = () => {
                                 <span className="w-12 text-right text-sm text-white font-semibold">{percentage}%</span>
                               </div>
                             ))}
-                          </div>
-                        )}
+                  </div>
+                )}
 
                         {/* Tips */}
                         <div className="bg-blue-500/20 border border-blue-400/50 rounded-lg p-3">
@@ -2631,71 +2635,21 @@ const SpeechInsights = () => {
                         </motion.div>
                         <p className="text-white/60 text-sm">No emotion analysis yet</p>
                         <p className="text-white/40 text-xs mt-1">Record with camera to track emotions and engagement</p>
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-
-                {/* Playback Section */}
-                {(audioURL || videoBlob) && (
-                  <div className="mt-6 bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-xl p-4 border-2 border-cyan-400/30">
-                    <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                      <FaPlay className="text-cyan-400" />
-                      Recording Playback
-                    </h3>
-                    
-                    {/* Video Player */}
-                    {videoBlob && (
-                      <div className="bg-black/30 rounded-lg p-3 mb-3">
-                        <div className="text-xs text-white/70 mb-2">Video Recording</div>
-                        <video 
-                          controls 
-                          className="w-full rounded-lg"
-                          style={{
-                            maxHeight: '300px',
-                            backgroundColor: '#000',
-                            outline: 'none',
-                            transform: 'scaleX(-1)'
-                          }}
-                        >
-                          <source src={videoBlob} type="video/webm" />
-                          Your browser does not support the video element.
-                        </video>
-                      </div>
-                    )}
-                    
-                   
-                    
-                    {/* Recording Info */}
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      {audioDuration && (
-                        <div className="bg-blue-500/20 rounded-lg p-2 text-center">
-                          <div className="text-white/60">Duration</div>
-                          <div className="text-white font-semibold">{audioDuration.toFixed(1)}s</div>
-                        </div>
-                      )}
-                      {recordedAt && (
-                        <div className="bg-purple-500/20 rounded-lg p-2 text-center">
-                          <div className="text-white/60">Recorded</div>
-                          <div className="text-white font-semibold text-xs">
-                            {new Date(recordedAt).toLocaleTimeString()}
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 )}
+              </div>
 
-                {/* Action Buttons */}
-                {(loudnessResult || fillerResult || paceResult) && (
-                  <div className="mt-6 space-y-3">
+            </div>
+
+                {/* View Results Button */}
+                {(audioURL || videoBlob || loudnessResult || fillerResult || paceResult) && (
+                  <div className="mt-6">
                     <button
-                      onClick={downloadPDFReport}
-                      className="w-full bg-green-600 text-black font-semibold py-3 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                      onClick={() => setShowPlaybackModal(true)}
+                      className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-cyan-700 hover:to-blue-700 transition-all shadow-lg flex items-center justify-center gap-2"
                     >
-                      <FaDownload />
-                      Download Complete Report
+                      <FaEye />
+                      View Results & Playback
                     </button>
                   </div>
                 )}
@@ -2703,6 +2657,163 @@ const SpeechInsights = () => {
             </div>
           </div>
         </div>
+
+        {/* Playback Modal */}
+        {showPlaybackModal && (audioURL || videoBlob) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <motion.div
+              className="bg-gradient-to-br from-[#00171f] to-[#003b46] rounded-2xl shadow-2xl border-2 border-cyan-400/50 w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-gradient-to-r from-[#003b46] to-[#00171f] p-4 border-b border-cyan-400/30 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <FaPlay className="text-cyan-400" />
+                  Recording Playback & Report
+                </h2>
+                <button
+                  onClick={() => setShowPlaybackModal(false)}
+                  className="text-black/70 hover:text-black transition-colors p-2 hover:bg-white/10 rounded-lg"
+                  title="Close"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 space-y-6">
+                
+                {/* Video Player */}
+                {videoBlob && (
+                  <div className="bg-black/30 rounded-xl p-4 border border-cyan-400/30">
+                    <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                      <FaVideo className="text-cyan-400" />
+                      Video Recording
+                    </h3>
+                    <video 
+                      controls 
+                      className="w-full rounded-lg shadow-lg"
+                      style={{
+                        maxHeight: '400px',
+                        backgroundColor: '#000',
+                        outline: 'none',
+                       
+                      }}
+                    >
+                      <source src={videoBlob} type="video/webm" />
+                      Your browser does not support the video element.
+                    </video>
+                  </div>
+                )}
+
+                {/* Recording Info Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {audioDuration && (
+                    <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-400/30 rounded-lg p-3 text-center">
+                      <FaClock className="text-blue-400 text-2xl mx-auto mb-2" />
+                      <div className="text-white/60 text-xs">Duration</div>
+                      <div className="text-white font-bold text-lg">{audioDuration.toFixed(1)}s</div>
+              </div>
+                  )}
+                  {recordedAt && (
+                    <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-400/30 rounded-lg p-3 text-center">
+                      <FaClock className="text-purple-400 text-2xl mx-auto mb-2" />
+                      <div className="text-white/60 text-xs">Recorded</div>
+                      <div className="text-white font-bold text-sm">
+                        {new Date(recordedAt).toLocaleTimeString()}
+            </div>
+          </div>
+                  )}
+                  {paceResult?.wordCount && (
+                    <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-400/30 rounded-lg p-3 text-center">
+                      <FaComment className="text-green-400 text-2xl mx-auto mb-2" />
+                      <div className="text-white/60 text-xs">Words</div>
+                      <div className="text-white font-bold text-lg">{paceResult.wordCount}</div>
+        </div>
+                  )}
+                  {paceResult?.wpm && (
+                    <div className="bg-gradient-to-br from-orange-500/20 to-yellow-500/20 border border-orange-400/30 rounded-lg p-3 text-center">
+                      <FaMicrophone className="text-orange-400 text-2xl mx-auto mb-2" />
+                      <div className="text-white/60 text-xs">Rate</div>
+                      <div className="text-white font-bold text-lg">{paceResult.wpm.toFixed(0)} WPM</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Analysis Summary */}
+                <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-400/30 rounded-xl p-4">
+                  <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                    <FaChartBar className="text-blue-400" />
+                    Quick Analysis Summary
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {loudnessResult && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/70">Loudness:</span>
+                        <span className={`font-semibold ${getScoreColor(loudnessResult.category, 'loudness')}`}>
+                          {loudnessResult.category}
+                        </span>
+                      </div>
+                    )}
+                    {fillerResult && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/70">Filler Words:</span>
+                        <span className={`font-semibold ${getScoreColor(fillerResult.fillerCount, 'filler')}`}>
+                          {fillerResult.fillerCount}
+                        </span>
+                      </div>
+                    )}
+                    {paceResult && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/70">Pace:</span>
+                        <span className={`font-semibold ${getScoreColor(paceResult.prediction, 'pace')}`}>
+                          {paceResult.prediction || getWpmLabel(paceResult.wpm)}
+                        </span>
+                      </div>
+                    )}
+                    {(visibleSeconds > 0 || awaySeconds > 0) && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/70">Engagement:</span>
+                        <span className={`font-semibold ${getScoreColor(Math.round((visibleSeconds / (visibleSeconds + awaySeconds || 1)) * 100), 'engagement')}`}>
+                          {Math.round((visibleSeconds / (visibleSeconds + awaySeconds || 1)) * 100)}%
+                        </span>
+                      </div>
+                    )}
+                    {emotionSummary.length > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/70">Top Emotion:</span>
+                        <span className="font-semibold text-pink-300">
+                          {emotionSummary[0][0]} ({emotionSummary[0][1]}%)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={downloadPDFReport}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <FaDownload />
+                    Download Report
+                  </button>
+                  <button
+                    onClick={() => setShowPlaybackModal(false)}
+                    className="px-6 bg-gray-600 text-black font-semibold py-3 rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     </div>
   );
