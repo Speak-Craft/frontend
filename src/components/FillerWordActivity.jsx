@@ -399,7 +399,7 @@ const FillerWordActivity = () => {
               <button
                 onClick={uploadAudio}
                 disabled={!audioBlob || isLoading}
-                className="mt-4 w-full font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 bg-[#003b46] hover:bg-[#07575b] dark:bg-[#0084a6] dark:hover:bg-[#00a8cc] text-black dark:text-white"
+                className="mt-4 w-full font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 bg-[#003b46] hover:bg-[#07575b] dark:bg-[#0084a6] dark:hover:bg-[#00a8cc] text-white dark:text-black"
               >
                 {isLoading ? "⏳ Analyzing..." : "⬆ Upload & Analyze"}
               </button>
