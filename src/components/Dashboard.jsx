@@ -4,6 +4,7 @@ import { FaUser, FaEnvelope, FaCalendarAlt, FaTrophy, FaChartLine, FaMicrophone,
 import { Link } from 'react-router-dom';
 import { getCurrentUser, logout } from '../utils/auth';
 import axios from 'axios';
+import dashboardVideo from '../assets/video/dashboard.mp4';
 import {
   LineChart,
   Line,
@@ -1256,28 +1257,7 @@ const Dashboard = () => {
                     </p>
                   </div>
 
-                  {/* Stats Cards */}
-                  {emotionStats && (
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="text-center p-3 bg-white/10 rounded-lg">
-                        <div className="text-white text-lg font-bold">{emotionStats.averageScore}%</div>
-                        <div className="text-gray-300 text-xs">Avg Score</div>
-                      </div>
-                      <div className="text-center p-3 bg-white/10 rounded-lg">
-                        <div className="text-white text-lg font-bold">{emotionStats.bestScore}%</div>
-                        <div className="text-gray-300 text-xs">Best Score</div>
-                      </div>
-                      <div className="text-center p-3 bg-white/10 rounded-lg">
-                        <div className="text-white text-lg font-bold">{emotionStats.completedActivities}</div>
-                        <div className="text-gray-300 text-xs">Completed</div>
-                      </div>
-                      <div className="text-center p-3 bg-white/10 rounded-lg">
-                        <div className="text-white text-lg font-bold">{emotionStats.totalBadges}</div>
-                        <div className="text-gray-300 text-xs">Badges</div>
-                      </div>
-                    </div>
-                  )}
-
+                
                   {/* Chart Section */}
                   <div className="flex-1 min-h-0 h-64">
                     {loading ? (
@@ -1358,6 +1338,37 @@ const Dashboard = () => {
                         <p className="text-gray-400 text-sm">Start practicing to see your performance!</p>
                       </div>
                     )}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Dashboard Video Player */}
+            <div className="flex-1 flex flex-col">
+              <motion.div
+                className="w-full h-full bg-gradient-to-br from-[#00171f] via-[#003b46] to-[#07575b] rounded-2xl p-6 border-2 border-[#00d4aa]/60 shadow-2xl backdrop-blur-sm relative overflow-hidden flex flex-col"
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 1.6 }}
+              >
+                {/* Glowing Border Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#00d4aa]/20 via-transparent to-[#00d4aa]/20 rounded-2xl animate-pulse"></div>
+                
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="text-center mb-6">
+                    
+                  </div>
+
+                  {/* Video Player Section */}
+                  <div className="flex-1 relative rounded-xl overflow-hidden bg-black/30 flex items-center justify-center">
+                    <video
+                      src={dashboardVideo}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-contain rounded-lg"
+                    />
                   </div>
                 </div>
               </motion.div>
