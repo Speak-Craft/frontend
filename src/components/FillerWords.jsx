@@ -13,6 +13,8 @@ const FillerWords = () => {
   const [audioDuration, setAudioDuration] = useState(null);
   const [recordedAt, setRecordedAt] = useState(null);
   const [savedRecs, setSavedRecs] = useState([]);
+  const [feedback, setFeedback] = useState(null);
+  const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
   
   // Recording states
   const [isRecording, setIsRecording] = useState(false);
@@ -75,6 +77,20 @@ const FillerWords = () => {
     } catch (err) {
       console.error("Failed to fetch saved recordings", err);
       console.error("Error response:", err.response?.data);
+    }
+  };
+
+  const getFeedbackFromGemini = async (fillerCount, duration) => {
+    try {
+      const res = await axios.post("http://localhost:3001/api/feedback/analyze", {
+        fillerCount,
+        duration,
+      });
+      console.log("Gemini feedback response:", res.data);
+      return res.data.feedback;
+    } catch (err) {
+      console.error("Gemini feedback error:", err);
+      return "Unable to fetch feedback at this moment.";
     }
   };
 
@@ -174,6 +190,7 @@ const FillerWords = () => {
 
     try {
       setIsLoading(true);
+      setFeedback(null);
       const token = localStorage.getItem("token");
 
       console.log("Uploading audio to:", "http://localhost:3001/api/recording/upload");
@@ -189,6 +206,14 @@ const FillerWords = () => {
 
       console.log("Upload response:", res.data);
       setResult(res.data);
+
+      // Fetch AI feedback after analysis
+      if (res.data && res.data.fillerCount !== undefined && audioDuration) {
+        setIsFeedbackLoading(true);
+        const aiFeedback = await getFeedbackFromGemini(res.data.fillerCount, audioDuration);
+        setFeedback(aiFeedback);
+        setIsFeedbackLoading(false);
+      }
     } catch (err) {
       console.error("Upload failed", err);
       console.error("Error response:", err.response?.data);
@@ -575,6 +600,45 @@ const FillerWords = () => {
                         Your browser does not support the audio element.
                       </audio>
                     </div>
+                  )}
+
+                  {/* AI Feedback Section */}
+                  {isFeedbackLoading && (
+                    <motion.div
+                      className="mt-4 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-lg p-4 border-2 border-purple-400/40"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        >
+                          <FaBrain className="text-purple-300 text-2xl" />
+                        </motion.div>
+                        <p className="text-white/90 font-medium">Generating AI feedback...</p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {feedback && !isFeedbackLoading && (
+                    <motion.div
+                      className="mt-4 bg-gradient-to-br from-purple-500/30 to-blue-500/30 rounded-lg p-5 border-2 border-purple-400/60 shadow-xl"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <FaBrain className="text-purple-300 text-xl" />
+                        <h4 className="text-[#00ccff] font-bold text-lg">AI Coach Feedback</h4>
+                      </div>
+                      <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
+                        <p className="text-white/90 leading-relaxed text-sm lg:text-base whitespace-pre-wrap">
+                          {feedback}
+                        </p>
+                      </div>
+                    </motion.div>
                   )}
 
                   <button
