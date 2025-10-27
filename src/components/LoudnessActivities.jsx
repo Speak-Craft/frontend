@@ -26,6 +26,8 @@ const LoudnessActivities = () => {
   const [liveDuration, setLiveDuration] = useState(0);
   const [percentage, setPercentage] = useState(0);
   const [distanceOK, setDistanceOK] = useState(false);
+  const [levelProgress, setLevelProgress] = useState({ 1: "unlocked", 2: "locked", 3: "locked" });
+  const [highestCompletedLevel, setHighestCompletedLevel] = useState(0);
 
   // Past exercises states
   const [exercises, setExercises] = useState([]);
@@ -62,9 +64,10 @@ const LoudnessActivities = () => {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  // Fetch scores on component mount
+  // Fetch scores and level progress on component mount
   useEffect(() => {
     fetchScores();
+    fetchLevelProgress();
   }, []);
 
   // Load face-api models (for distance detection)
@@ -205,7 +208,7 @@ const LoudnessActivities = () => {
       if (liveDuration >= 20 && pct >= 20 && distanceOK) {
         // Mark as completed locally
         setExercise((prev) => ({ ...prev, completed: true }));
-        setStatus("✅ Completed!");
+        setStatus("✅ Completed! Click 'Save Progress' to unlock next level.");
         clearInterval(timerRef.current);
       }
     }
@@ -235,6 +238,18 @@ const LoudnessActivities = () => {
 
     fetchExercises();
   }, []);
+
+  const fetchLevelProgress = async () => {
+    try {
+      const res = await axios.get("http://localhost:3001/api/exercises/loudness/progress", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setLevelProgress(res.data.levelProgress);
+      setHighestCompletedLevel(res.data.highestCompletedLevel);
+    } catch (err) {
+      console.error("Error fetching level progress", err);
+    }
+  };
 
   const fetchScores = async () => {
     try {
@@ -343,11 +358,11 @@ const LoudnessActivities = () => {
     return thresholds[level] || 0.05;
   };
 
-  const startExercise = async () => {
+  const startExercise = async (level = 1) => {
     try {
       const res = await axios.post(
         "http://localhost:3001/api/exercises/loudness/start",
-        {},
+        { level },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       setExercise(res.data.exercise);
@@ -380,11 +395,22 @@ const LoudnessActivities = () => {
         { rmsValues, duration: timeElapsed, completed: true, exerciseId: exercise?._id },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
-      setExercise(res.data);
 
       if (res.data.completed) {
-        setStatus("✅ Completed!");
+        setStatus("✅ Progress saved! Level unlocked!");
         clearInterval(timerRef.current);
+        // Refetch level progress to unlock next level
+        await fetchLevelProgress();
+        // Return to level selection after a brief delay
+        setTimeout(() => {
+          setExercise(null);
+          setStatus("Idle");
+          setTimeElapsed(0);
+          setLiveDuration(0);
+          setRmsValues([]);
+          setPercentage(0);
+          closeCamera();
+        }, 2000);
       } else {
         setStatus("In Progress");
       }
@@ -514,18 +540,152 @@ const LoudnessActivities = () => {
                 <div className="text-center mb-6">
                   <h3 className="text-xl font-bold text-white mb-2">Loudness Training</h3>
                   <p className="text-gray-300 text-sm">Complete exercises to improve your loudness control</p>
+                  
+                  {/* Progress Indicator */}
+                  <div className="mt-4 bg-gray-800/50 p-3 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white text-sm font-semibold">Overall Progress</span>
+                      <span className="text-[#f59e0b] text-sm font-bold">
+                        {highestCompletedLevel}/3 Levels
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div
+                        className="h-2 bg-gradient-to-r from-yellow-400 to-green-500 rounded-full transition-all duration-500"
+                        style={{ width: `${(highestCompletedLevel / 3) * 100}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {!exercise && (
-                  <motion.button
-                    onClick={startExercise}
-                    className="bg-yellow-400 hover:bg-yellow-500 text-[#003b46] px-6 py-3 rounded-2xl shadow-md font-semibold text-lg w-full flex items-center justify-center gap-2"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <FaRocket />
-                    Start Exercise
-                  </motion.button>
+                  <div className="space-y-4 mb-6">
+                    {/* Level 1 */}
+                    <div className={`p-4 rounded-lg border-2 ${
+                      levelProgress[1] === "completed" ? "border-green-500 bg-green-500/10" :
+                      levelProgress[1] === "unlocked" ? "border-yellow-400 bg-yellow-400/10" :
+                      "border-gray-600 bg-gray-700/30"
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {levelProgress[1] === "completed" ? (
+                            <FaCheckCircle className="text-green-400 text-2xl" />
+                          ) : levelProgress[1] === "unlocked" ? (
+                            <FaVolumeUp className="text-yellow-400 text-2xl" />
+                          ) : (
+                            <FaMedal className="text-gray-500 text-2xl" />
+                          )}
+                          <div>
+                            <h4 className="text-white font-semibold">Level 1</h4>
+                            <p className="text-gray-300 text-sm">Basic loudness control</p>
+                          </div>
+                        </div>
+                        <motion.button
+                          onClick={() => startExercise(1)}
+                          disabled={levelProgress[1] === "locked"}
+                          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
+                            levelProgress[1] === "completed" ? "bg-green-500 hover:bg-green-600" :
+                            levelProgress[1] === "unlocked" ? "bg-yellow-400 hover:bg-yellow-500 text-[#003b46]" :
+                            "bg-gray-600 cursor-not-allowed"
+                          }`}
+                          whileHover={levelProgress[1] !== "locked" ? { scale: 1.05 } : {}}
+                          whileTap={levelProgress[1] !== "locked" ? { scale: 0.95 } : {}}
+                          style={{ color: "black" }}
+                        >
+                          <FaPlay style={{ color: "black" }} />
+                          {levelProgress[1] === "completed" ? "Replay" : "Start"}
+                        </motion.button>
+                      </div>
+                    </div>
+
+                    {/* Level 2 */}
+                    <div className={`p-4 rounded-lg border-2 ${
+                      levelProgress[2] === "completed" ? "border-green-500 bg-green-500/10" :
+                      levelProgress[2] === "unlocked" ? "border-yellow-400 bg-yellow-400/10" :
+                      "border-gray-600 bg-gray-700/30"
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {levelProgress[2] === "completed" ? (
+                            <FaCheckCircle className="text-green-400 text-2xl" />
+                          ) : levelProgress[2] === "unlocked" ? (
+                            <FaVolumeUp className="text-yellow-400 text-2xl" />
+                          ) : (
+                            <FaMedal className="text-gray-500 text-2xl" />
+                          )}
+                          <div>
+                            <h4 className="text-white font-semibold">Level 2</h4>
+                            <p className="text-gray-300 text-sm">Intermediate modulation</p>
+                          </div>
+                        </div>
+                        <motion.button
+                          onClick={() => startExercise(2)}
+                          disabled={levelProgress[2] === "locked"}
+                          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
+                            levelProgress[2] === "completed" ? "bg-green-500 hover:bg-green-600" :
+                            levelProgress[2] === "unlocked" ? "bg-yellow-400 hover:bg-yellow-500 text-[#003b46]" :
+                            "bg-gray-600 cursor-not-allowed"
+                          }`}
+                          whileHover={levelProgress[2] !== "locked" ? { scale: 1.05 } : {}}
+                          whileTap={levelProgress[2] !== "locked" ? { scale: 0.95 } : {}}
+                          style={{ color: "black" }}
+                        >
+                          {levelProgress[2] === "locked" ? (
+                            <>🔒 Locked</>
+                          ) : (
+                            <>
+                              <FaPlay style={{ color: "black" }} />
+                              {levelProgress[2] === "completed" ? "Replay" : "Start"}
+                            </>
+                          )}
+                        </motion.button>
+                      </div>
+                    </div>
+
+                    {/* Level 3 */}
+                    <div className={`p-4 rounded-lg border-2 ${
+                      levelProgress[3] === "completed" ? "border-green-500 bg-green-500/10" :
+                      levelProgress[3] === "unlocked" ? "border-yellow-400 bg-yellow-400/10" :
+                      "border-gray-600 bg-gray-700/30"
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {levelProgress[3] === "completed" ? (
+                            <FaCheckCircle className="text-green-400 text-2xl" />
+                          ) : levelProgress[3] === "unlocked" ? (
+                            <FaVolumeUp className="text-yellow-400 text-2xl" />
+                          ) : (
+                            <FaMedal className="text-gray-500 text-2xl" />
+                          )}
+                          <div>
+                            <h4 className="text-white font-semibold">Level 3</h4>
+                            <p className="text-gray-300 text-sm">Advanced dynamics</p>
+                          </div>
+                        </div>
+                        <motion.button
+                          onClick={() => startExercise(3)}
+                          disabled={levelProgress[3] === "locked"}
+                          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
+                            levelProgress[3] === "completed" ? "bg-green-500 hover:bg-green-600" :
+                            levelProgress[3] === "unlocked" ? "bg-yellow-400 hover:bg-yellow-500 text-[#003b46]" :
+                            "bg-gray-600 cursor-not-allowed"
+                          }`}
+                          whileHover={levelProgress[3] !== "locked" ? { scale: 1.05 } : {}}
+                          whileTap={levelProgress[3] !== "locked" ? { scale: 0.95 } : {}}
+                          style={{ color: "black" }}
+                        >
+                          {levelProgress[3] === "locked" ? (
+                            <>🔒 Locked</>
+                          ) : (
+                            <>
+                              <FaPlay style={{ color: "black" }} />
+                              {levelProgress[3] === "completed" ? "Replay" : "Start"}
+                            </>
+                          )}
+                        </motion.button>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {exercise && (
@@ -574,9 +734,10 @@ const LoudnessActivities = () => {
                       {!exercise.completed && (
                         <motion.button
                           onClick={stopExercise}
-                          className="bg-red-500 hover:bg-red-600 text-white border border-white px-5 py-2 rounded-lg font-medium shadow-md flex items-center gap-2"
+                          className="bg-red-500 hover:bg-red-600 text-black border border-white px-5 py-2 rounded-lg font-medium shadow-md flex items-center gap-2"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
+                          style={{ color: "black" }}
                         >
                           <FaStop />
                           Stop
@@ -589,6 +750,7 @@ const LoudnessActivities = () => {
                           className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg font-medium shadow-md flex items-center gap-2"
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
+                          style={{ color: "black" }}
                         >
                           <FaSave />
                           Save Progress
@@ -833,9 +995,9 @@ const LoudnessActivities = () => {
                       ref={videoRef}
                       autoPlay
                       muted
-                      width="320"
-                      height="240"
-                      className="rounded-lg border mb-2"
+                      width="640"
+                      height="480"
+                      className="rounded-lg border-2 border-gray-600 mb-2 shadow-lg"
                     />
                     <p className={distanceOK ? "text-green-400" : "text-red-400"}>
                       {distanceOK ? "✅ Correct distance (1m–2m)" : "⚠️ Move ahead"}

@@ -1346,7 +1346,7 @@ const Dashboard = () => {
             {/* Dashboard Video Player */}
             <div className="flex-1 flex flex-col">
               <motion.div
-                className="w-full h-full bg-gradient-to-br from-[#00171f] via-[#003b46] to-[#07575b] rounded-2xl p-6 border-2 border-[#00d4aa]/60 shadow-2xl backdrop-blur-sm relative overflow-hidden flex flex-col"
+                className="w-full  bg-gradient-to-br from-[#00171f] via-[#003b46] to-[#07575b] rounded-2xl p-6 border-2 border-[#00d4aa]/60 shadow-2xl backdrop-blur-sm relative overflow-hidden flex flex-col"
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 1.6 }}
@@ -1354,7 +1354,7 @@ const Dashboard = () => {
                 {/* Glowing Border Effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-[#00d4aa]/20 via-transparent to-[#00d4aa]/20 rounded-2xl animate-pulse"></div>
                 
-                <div className="relative z-10 flex flex-col h-full">
+                <div className="relative z-10 flex flex-col ">
                   <div className="text-center mb-6">
                     
                   </div>
